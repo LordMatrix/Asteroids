@@ -31,6 +31,7 @@ typedef struct {
 	int peso;
 } tFigura;
 
+float radianes = 1;
 
 int win_width = 800, win_height = 600;
 
@@ -40,6 +41,47 @@ int random(int limit) {
 	return (rand() % limit);
 }
 
+/* Devuelve los puntos x e y pertenecientes al centro del polígono */
+void getFigureCenter(tFigura figura, int *x, int *y) {
+
+	int i = 0;
+
+	float signedArea = 0.0;
+	float x0 = 0.0; // Current vertex X
+	float y0 = 0.0; // Current vertex Y
+	float x1 = 0.0; // Next vertex X
+	float y1 = 0.0; // Next vertex Y
+	float a = 0.0;  // Partial signed area
+
+	*x = 0; *y = 0;
+
+	// para cada vértice salvo el último
+	for (i = 0; i < figura.num_vertices - 1; ++i)
+	{
+		x0 = figura.vertices[i][0];
+		y0 = figura.vertices[i][1];
+		x1 = figura.vertices[i + 1][0];
+		y1 = figura.vertices[i + 1][1];
+		a = x0*y1 - x1*y0;
+		signedArea += a;
+		*x += (x0 + x1)*a;
+		*y += (y0 + y1)*a;
+	}
+
+	// Do last vertex
+	x0 = figura.vertices[i][0];
+	y0 = figura.vertices[i][1];
+	x1 = figura.vertices[0][0];
+	y1 = figura.vertices[0][1];
+	a = x0*y1 - x1*y0;
+	signedArea += a;
+	*x += (x0 + x1)*a;
+	*y += (y0 + y1)*a;
+
+	signedArea *= 0.5;
+	*x /= (6 * signedArea);
+	*y /= (6 * signedArea);
+}
 
 /* Dibuja un cuadrado con su esquina superior izquierda en las coordenadas indicadas */
 void printFigure(tFigura figura) {
@@ -60,6 +102,19 @@ void printFigure(tFigura figura) {
 
 	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
 	ESAT::DrawSolidPath(pathPoints, figura.num_vertices + 1, true);
+
+
+	int cx, cy;
+	getFigureCenter(figura, &cx, &cy);
+
+	float pathPoints2[20] = {
+		cx - 1, cy-1,
+		cx+1, cy-1,
+		cx+1, cy+1,
+		cx-1, cy+1,
+		cx - 1, cy - 1
+	};
+	ESAT::DrawSolidPath(pathPoints2, 5, true);
 }
 
 
@@ -95,7 +150,7 @@ void createFigures(tFigura figuras[50]) {
 	int width, height;
 	tFigura figura;
 
-	for (i = 0; i < 50; i++) {
+	for (i = 0; i < 20; i++) {
 		//comprobamos que cada figura sea de al menos 10px de lado
 		do {
 			width = random(80);
@@ -153,47 +208,6 @@ int rayCast(tFigura figura, int x, int y) {
 }
 
 
-/* Devuelve los puntos x e y pertenecientes al centro del polígono */
-void getFigureCenter(tFigura figura, int *x, int *y) {
-
-	int i = 0;
-
-	int signedArea = 0.0;
-	int x0 = 0.0; // Current vertex X
-	int y0 = 0.0; // Current vertex Y
-	int x1 = 0.0; // Next vertex X
-	int y1 = 0.0; // Next vertex Y
-	int a = 0.0;  // Partial signed area
-
-	*x = 0; *y = 0;
-
-	// para cada vértice salvo el último
-	for (i = 0; i < figura.num_vertices - 1; ++i)
-	{
-		x0 = figura.vertices[i][0];
-		y0 = figura.vertices[i][1];
-		x1 = figura.vertices[i + 1][0];
-		y1 = figura.vertices[i + 1][1];
-		a = x0*y1 - x1*y0;
-		signedArea += a;
-		*x += (x0 + x1)*a;
-		*y += (y0 + y1)*a;
-	}
-
-	// Do last vertex
-	x0 = figura.vertices[i][0];
-	y0 = figura.vertices[i][1];
-	x1 = figura.vertices[0][0];
-	y1 = figura.vertices[0][1];
-	a = x0*y1 - x1*y0;
-	signedArea += a;
-	*x += (x0 + x1)*a;
-	*y += (y0 + y1)*a;
-
-	signedArea *= 0.5;
-	*x /= (6 * signedArea);
-	*y /= (6 * signedArea);
-}
 
 
 /* Aumenta el tamaño de la figura indicada */
@@ -217,14 +231,7 @@ void growFigure(tFigura(*figura), float scale) {
 	(*figura).peso *= scale * 2;
 }
 
-/*
-void Rotar(float *x, float *y, float cx, float cy, float dangulo){
-float dx = *x - cx, dy = *y - cy, r = sqrt(dx*dx + dy*dy), a = atan2(dy, dx);
-a -= dangulo / 180 * M_PI;
-*x = cx + r*cos(a);
-*y = cy + r*sin(a);
-}
-*/
+
 void rotateFigure(tFigura(*figura), int degrees) {
 	int i;
 	int x, y;
@@ -240,11 +247,13 @@ void rotateFigure(tFigura(*figura), int degrees) {
 		r = sqrt(dx*dx + dy*dy);
 		a = atan2(dy, dx);
 
-		a -= degrees / 180 * M_PI;
+		a -= radianes / 180 * M_PI;
 		(*figura).vertices[i][0] = cx + r*cos(a);
 		(*figura).vertices[i][1] = cy + r*sin(a);
 	}
+	radianes+=.1;
 }
+
 
 /* Detecta la pulsación del botón izquierdo del ratón y hace cosas */
 void getClickedFigure(tFigura figuras[50]) {
@@ -273,6 +282,8 @@ void moveFigures(tFigura figuras[50]) {
 	//margen invisible en el exterior de la pantalla
 	int margin = 25;
 
+	int rotate = ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space);
+
 	//Iteramos para todas las figuras existentes
 	for (i = 0; i < 50; i++) {
 		figura = figuras[i];
@@ -292,9 +303,11 @@ void moveFigures(tFigura figuras[50]) {
 				figura.vertices[j][0] += 5;
 			}
 
-			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space)) {
-				rotateFigure(&figura, 10);
-			}
+			
+		}
+
+		if (rotate) {
+			rotateFigure(&figura, 2);
 		}
 
 		//Si se sale por la parte inferior de la pantalla, recalculamos sus coordenadas para colocarla en la parte superior de la misma
