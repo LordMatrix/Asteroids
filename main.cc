@@ -27,6 +27,7 @@ typedef struct {
 	Point2 vertices[30];
 	Point2 center;
 	int rgb[4];
+	int age;
 } tFigura;
 
 typedef struct {
@@ -36,7 +37,6 @@ typedef struct {
 	tFigura thruster;
 	// 0=normal, 1=invulnerable, 2=destruyéndose
 	int state;
-	int age;
 	//Guarda los pares de puntos que definen los vectores para la animación de la nave destruyéndose
 	Point2 destroyed[8];
 	//Guarda la dirección hacia la que se desplaza cada linea de la animación de nave destruyéndose
@@ -46,6 +46,7 @@ typedef struct {
 typedef struct {
 	Point2 pos;
 	float accx, accy;
+	int owner;
 	int age;
 } tShot;
 
@@ -73,6 +74,7 @@ typedef struct {
 	float accx, accy;
 	int type;
 	int points;
+	int state;
 } tOvni;
 
 int win_width = 1000, win_height = 600;
@@ -359,7 +361,7 @@ tShip createShip(int width, int height) {
 	ship.accy = 0;
 	ship.dir = 0;
 	ship.state = 0;
-	ship.age = 0;
+	ship.figura.age = 0;
 
 	return ship;
 }
@@ -376,20 +378,52 @@ int rayCast(tFigura figura, Point2 p) {
 	return c;
 }
 
-/* Crea un disparo */
-void shoot(tShip ship, tShot shots[50], int *num_shots) {
+/* Crea un disparo desde la nave */
+void shoot(tShip *ship, tShot shots[50], int *num_shots) {
 	tShot shot;
 	float speed = 8.0f;
 
-	shot.pos = ship.figura.vertices[0];
+	(*ship).figura.age = 0;
+	shot.pos = (*ship).figura.vertices[0];
 	
-	shot.accx = sin(rads(ship.dir)) * speed;
-	shot.accy = cos(rads(ship.dir)) * -speed;
+	shot.accx = sin(rads((*ship).dir)) * speed;
+	shot.accy = cos(rads((*ship).dir)) * -speed;
 	shot.age = 0;
+	shot.owner = 1;
 
 	shots[*num_shots] = shot;
 	*num_shots += 1;
   	speed = speed;
+	
+}
+
+/* Crea un disparo desde el ovni */
+void shoot(tShip *ship, tShot shots[50], int *num_shots, tOvni *ovni) {
+	tShot shot;
+	float speed = 8.0f;
+
+	(*ovni).figura.age = 0;
+	shot.pos = (*ovni).figura.center;
+
+	if ((*ovni).type == 1) {
+		shot.accx = sin(rads(random(360))) * random_sign() * speed;
+		shot.accy = cos(rads(random(360))) * random_sign() * speed;
+	}
+	else {
+		Vec2 v;
+		initVec2FromPoints(&v, (*ovni).figura.center, (*ship).figura.center);
+		normalizeVec2(v, &v);
+		
+		shot.accx = (v.x) * speed;
+		shot.accy = (v.y) * speed;
+	}
+
+	shot.age = 0;
+	shot.owner = 0;
+
+	shots[*num_shots] = shot;
+	*num_shots += 1;
+	speed = speed;
 }
 
 //Elimina un disparo del vector de disparos
@@ -515,11 +549,29 @@ tAsteroid createAsteroid(int type, int size, Point2 origin) {
 }
 
 /* Crea un ovni */
-tOvni createOvni(int type, Point2 origin) {
+tOvni createOvni(int type) {
 	tOvni o;
-	
-	o.type = type;
+	Point2 p;
+	float size;
 
+	initPoint2(&p, 200, 200);
+
+	//Aceleraciones aleatorias
+	int speed = 30;
+	o.accx = random(speed) * random_sign();
+	o.accy = random(speed - abs(o.accx)) * random_sign();
+
+	o.type = type;
+	if (o.type == 1) {
+		size = 2;
+		o.points = 200;
+	}
+	else {
+		size = 1;
+		o.points = 1000;
+	}
+
+	o.state = 0;
 	o.figura.num_vertices = 12;
 
 	//Definición de los vértices de la figura ovni
@@ -535,6 +587,9 @@ tOvni createOvni(int type, Point2 origin) {
 	initPoint2(&o.figura.vertices[9], 14, 8);
 	initPoint2(&o.figura.vertices[10], 2, 15);
 	initPoint2(&o.figura.vertices[11], 48, 15);
+
+	getFigureCenter(o.figura, &o.figura.center);
+	recalculateCoordinates(&o.figura, p, size);
 
 	return o;
 }
@@ -592,7 +647,7 @@ void destroyShip(tShip *ship) {
 	initPoint2(&p, win_width/2, win_height/2);
 	
 	(*ship).state = 2;
-	(*ship).age = 0;
+	(*ship).figura.age = 0;
 
 	for (i = 0, j = 0; i < 8; i++, j+=2) {
 		initVec2(&dir, random(20) * random_sign(), random(20) * random_sign());
@@ -603,6 +658,17 @@ void destroyShip(tShip *ship) {
 	recalculateCoordinates(&(*ship).figura, p, 1);
 	(*ship).accx = 0;
 	(*ship).accy = 0;
+}
+
+void destroyOvni(tOvni *ovni) {
+	Point2 p;
+	int i, j;
+	Vec2 dir;
+
+	initPoint2(&p, win_width / 2, win_height / 2);
+
+	(*ovni).state = 2;
+	(*ovni).figura.age = 0;
 }
 
 /* Dibuja y avanza la animaciónd e destrucción de la nave. Devuelve 1 si la animación ha terminado*/
@@ -645,12 +711,85 @@ void checkShipAsteroidsHit(tAsteroid asteroids[50], int *num_asteroids, tShip *s
 	}
 }
 
+void checkAsteroidsOvniHit(tAsteroid asteroids[50], int *num_asteroids, tOvni *ovni){
+	int i, j;
+	int hit = 0;
+
+	for (i = 0; i < (*ovni).figura.num_vertices && !hit; i++) {
+		hit = 0;
+		for (j = 0; j < *num_asteroids && !hit; j++) {
+			if (rayCast(asteroids[j].figura, (*ovni).figura.vertices[i]) == 1) {
+				//Partimos el asteroide
+				breakAsteroid(asteroids, j, &(*num_asteroids), 0);
+				//Destruimos el ovni
+				destroyOvni(&(*ovni));
+			}
+		}
+
+	}
+}
+
+void checkShotsOvniHit (tShot shots[5000], int *num_shots, tOvni *ovni) {
+	int i;
+	int hit = 0;
+
+	for (i = 0; i < *num_shots && !hit; i++) {
+		if (shots[i].owner == 1 && rayCast((*ovni).figura, shots[i].pos) == 1) {
+			//Destruimos el ovni
+			destroyOvni(&(*ovni));
+			//Eliminamos el disparo
+			removeShot(shots, i, &(*num_shots));
+			player.points += (*ovni).points;
+			hit = 1;
+		}
+	}
+}
+
+void checkShotsShipHit(tShot shots[5000], int *num_shots, tShip *ship) {
+	int i;
+	int hit = 0;
+
+	for (i = 0; i < *num_shots && !hit; i++) {
+		if (shots[i].owner == 0 && rayCast((*ship).figura, shots[i].pos) == 1) {
+			//Eliminamos el disparo
+			removeShot(shots, i, &(*num_shots));
+			//Destruimos la nave
+			destroyShip(&(*ship));
+			hit = 1;
+			player.lives--;
+		}
+	}
+}
+
+void checkShipOvniHit(tShip *ship, tOvni *ovni) {
+	int i, j;
+	int hit = 0;
+
+	for (i = 0; i < (*ship).figura.num_vertices && !hit; i++) {
+		hit = 0;
+		if (rayCast((*ovni).figura, (*ship).figura.vertices[i]) == 1) {
+			//Partimos el asteroide
+			destroyOvni(&(*ovni));
+			//Destruimos la nave
+			destroyShip(&(*ship));
+			hit = 1;
+			player.lives--;
+		}
+	}
+}
+
 /* Itera sobre los elementos que pueden colisionar entre ellos y hace las comprobaciones pertinentes */
-void checkHits(tAsteroid asteroids[50], int *num_asteroids, tShot shots[5000], int *num_shots, tShip *ship) {
+void checkHits(tAsteroid asteroids[50], int *num_asteroids, tShot shots[5000], int *num_shots, tShip *ship, tOvni *ovni, int check_ovni) {
 	
 	checkShotsAsteroidsHit(asteroids, &(*num_asteroids), shots, &(*num_shots));
 	checkShipAsteroidsHit(asteroids, &(*num_asteroids), &(*ship));
 
+	if (check_ovni) {
+		checkAsteroidsOvniHit(asteroids, &(*num_asteroids), &(*ovni));
+		checkShotsOvniHit(shots, &(*num_shots), &(*ovni));
+		checkShipOvniHit(&(*ship), &(*ovni));
+		checkShotsShipHit(shots, &(*num_shots), &(*ship));
+	}
 }
 
 /* Dibuja los disparos */
@@ -699,6 +838,27 @@ void moveAsteroids(tAsteroid asteroids[50], int num_asteroids) {
 			recalculateCoordinates(&asteroids[i].figura, newpos, 1);
 	}
 }
+
+void moveOvni(tOvni *ovni) {
+	int i, j;
+	Point2 newpos;
+
+	//Avanzamos todos los vértices del asteroide según la aceleración del mismo
+	for (j = 0; j < (*ovni).figura.num_vertices; j++) {
+		(*ovni).figura.vertices[j].x += 0.1 * (*ovni).accx;
+		(*ovni).figura.vertices[j].y += 0.1 * (*ovni).accy;
+	}
+
+	//Avanzamos su centro
+	(*ovni).figura.center.x += 0.1 * (*ovni).accx;
+	(*ovni).figura.center.y += 0.1 * (*ovni).accy;
+
+	//Comprobamos si la nave ha salido de la pantalla	
+	int out = checkScreenBorders((*ovni).figura.center, &newpos);
+	if (out)
+		recalculateCoordinates(&(*ovni).figura, newpos, 1);
+}
+
 
 /* Dibuja cada uno de los asteroides */
 void printAsteroids(tAsteroid asteroids[50], int num_asteroids) {
@@ -757,9 +917,9 @@ int showNextFrame(float diff, float *fps) {
 	return 1;
 }
 
-int ESAT::main(int argc, char **argv) {
-	
+int game() {
 	tShip ship;
+	tOvni ovni;
 	tShot shots[5000];
 	tAsteroid asteroids[500];
 	clock_t t1 = clock(), t2 = clock();
@@ -767,6 +927,7 @@ int ESAT::main(int argc, char **argv) {
 	int num_asteroids = 0;
 	int max_age = 100;
 	float diff, fps;
+	int quit = 0;
 
 	srand(time(NULL));
 
@@ -775,78 +936,104 @@ int ESAT::main(int argc, char **argv) {
 	ship = createShip(40, 50);
 	createAsteroids(asteroids, &num_asteroids);
 
-	ESAT::WindowInit(win_width, win_height);
+	/* Ovni */
+	ovni = createOvni(1);
+	ovni.state = 2;
+	/********/
 
-	initText();
-	tOvni o;
-	Point2 p;
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+	while (ESAT::WindowIsOpened() && quit == 0) {
+		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
+			/*** Comprueba el tiempo transcurrido desde el último frame ***/
+			t2 = clock();
+			diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC) * 1000;
+			if (!showNextFrame(diff, &fps))
+				continue;
+			t1 = clock();
+			/**************************************************************/
 
-		/*** Comprueba el tiempo transcurrido desde el último frame ***/
-		t2 = clock();
-		diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC) * 1000;
-		if (!showNextFrame(diff, &fps))
-			continue;
-		t1 = clock();
-		/**************************************************************/
-		
-		printInfo();
+			printInfo();
 
-		initPoint2(&p, 200, 200);
-		o = createOvni(1, p);
-		getFigureCenter(o.figura, &o.figura.center);
-		
-		recalculateCoordinates(&o.figura, p, 8);
-		printFigure(o.figura);
+			if (ovni.state == 0) {
+				printFigure(ovni.figura);
+				moveOvni(&ovni);
+				ovni.figura.age++;
+				if (ovni.figura.age % 200 == 0)
+					shoot(&ship, shots, &num_shots, &ovni);
+			}
+			else if (ship.figura.age % 500 == 0)
+				ovni = createOvni(random(2));
 
-
-		switch (ship.state) {
+			switch (ship.state) {
 			case 0:
 				printFigure(ship.figura);
 				moveShip(&ship);
 				if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space)) {
-					shoot(ship, shots, &num_shots);
+					shoot(&ship, shots, &num_shots);
 				}
-				checkHits(asteroids, &num_asteroids, shots, &num_shots, &ship);
+				checkHits(asteroids, &num_asteroids, shots, &num_shots, &ship, &ovni, ovni.state == 0);
+				ship.figura.age++;
 				break;
 			case 1:
-				if (ship.age % 3 == 0)
+				if (ship.figura.age % 3 == 0)
 					printFigure(ship.figura);
 
 				moveShip(&ship);
 
-				if (ship.age > max_age) {
-					ship.age = 0;
+				if (ship.figura.age > max_age) {
+					ship.figura.age = 0;
 					ship.state = 0;
 				}
 				break;
 			case 2:
 				printShipDestruction(&ship);
-				if (ship.age > max_age) {
-					ship.age = 0;
+				if (ship.figura.age > max_age) {
+					ship.figura.age = 0;
 					ship.state = 1;
 				}
 				break;
+			}
+
+			ship.figura.age++;
+
+			printShots(shots, num_shots);
+			moveShots(shots, &num_shots);
+
+			moveAsteroids(asteroids, num_asteroids);
+			printAsteroids(asteroids, num_asteroids);
+
+
+			if (num_asteroids == 0) {
+				level++;
+				createAsteroids(asteroids, &num_asteroids);
+			}
+		} else {
+			quit = 1;
 		}
-			
-		ship.age++;
 
-		printShots(shots, num_shots);
-		moveShots(shots, &num_shots);
-
-		moveAsteroids(asteroids, num_asteroids);
-		printAsteroids(asteroids, num_asteroids);
-
-		
-		if (num_asteroids == 0) {
-			level++;
-			createAsteroids(asteroids, &num_asteroids);
-		}
-		
 		ESAT::DrawClear(0, 0, 0);
 		ESAT::WindowFrame();
-		
 	}
+
+	return 0;
+}
+
+int ESAT::main(int argc, char **argv) {
+	int exit, start = 0;
+
+	ESAT::WindowInit(win_width, win_height);
+
+	initText();
+
+	//while (ESAT::WindowIsOpened() && !exit) {
+
+	//if (start)
+	game();
+	//else
+	//Mainmenu();
+
+	ESAT::DrawClear(0, 0, 0);
+	ESAT::WindowFrame();
+	//}
 
 	ESAT::WindowDestroy();
 	return 0;
