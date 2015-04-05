@@ -67,6 +67,15 @@ typedef struct {
 	int threshold;
 	int points;
 	int lives;
+
+	std::string name;
+	std::string birthDate;
+	std::string province;
+	std::string country;
+	std::string user;
+	std::string pass;
+	std::string email;
+	int credits;
 } tPlayer;
 
 typedef struct {
@@ -1016,24 +1025,156 @@ int game() {
 
 	return 0;
 }
+/***********************************************************/
+/************************* END GAME ************************/
+/***********************************************************/
+
+typedef struct {
+	Point2 pos;
+	int size;
+	std::string txt;
+} tButton;
+
+tButton buttons[10];
+int num_buttons = 0;
+
+/* Dibuja un cuadrado con su esquina superior izquierda en las coordenadas indicadas */
+void drawButton(tButton button) {
+	int padding = 30;
+	int color[] = { 255, 255, 255, 255 };
+
+	float pathPoints[] = { button.pos.x, button.pos.y,
+		button.pos.x + button.size*2.5f, button.pos.y,
+		button.pos.x + button.size*2.5f, button.pos.y + button.size,
+		button.pos.x, button.pos.y + button.size,
+		button.pos.x, button.pos.y
+	};
+
+	/*Color rgb interior del polígono*/
+	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+
+	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
+	ESAT::DrawSolidPath(pathPoints, 5, true);
+
+	/*Texto dentro del botón*/
+	ESAT::DrawSetFillColor(0, 0, 0, 255);
+	ESAT::DrawSetStrokeColor(0, 0, 0);
+	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
+	int font = (button.size / button.txt.length()) * 2.5;
+	ESAT::DrawSetTextSize(font);
+
+	const char *txt2 = button.txt.c_str();
+	ESAT::DrawText(button.pos.x + padding, button.pos.y + padding * 2, txt2);
+}
+
+//Comprueba y devuelve el número de botón pulsado
+int checkButtonsClick() {
+	int i, click = 0;
+	
+	for (i = 0; i < num_buttons && !click; i++) {
+		//Comprobamos que el click sea en el interior del botón
+		if (ESAT::MousePositionX() >(int)buttons[i].pos.x
+		&& ESAT::MousePositionX() < (int)buttons[i].pos.x + 2 * buttons[i].size
+		&& ESAT::MousePositionY() > (int)buttons[i].pos.y
+		&& ESAT::MousePositionY() < (int)buttons[i].pos.y + buttons[i].size) {
+			click = 1;
+		}
+	}
+	return (click) ? i-1 : -1;
+}
+
+
+void logInMenu(int option) {
+	int quit = 0;
+
+	while (ESAT::WindowIsOpened() && quit == 0) {
+		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
+			if (option == 0) {
+				ESAT::DrawText(130.0f, 120.0f, "LOG IN");
+			}
+			else {
+				ESAT::DrawText(130.0f, 120.0f, "REGISTER");
+			}
+		}
+		else
+			quit = 1;
+
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
+	}
+}
+
+void mainMenu() {
+
+	ESAT::DrawSetTextSize(100);
+	ESAT::DrawSetFillColor(255, 255, 255);
+	ESAT::DrawSetStrokeColor(255, 255, 255);
+
+	ESAT::DrawText(130.0f, 160.0f, "ASTEROIDS");
+
+	drawButton(buttons[0]);
+	drawButton(buttons[1]);
+	
+	if (ESAT::MouseButtonDown(1)) {
+		switch (checkButtonsClick()) {
+		case 0:
+			logInMenu(0);
+			break;
+		case 1:
+			logInMenu(1);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void initMainMenu() {
+	/* Crear botones del menú principal */
+	tButton b, c;
+	initPoint2(&b.pos, 350, 230);
+	b.txt = "LOG IN";
+	b.size = 100;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 380);
+	c.txt = "REGISTER";
+	c.size = 100;
+	buttons[num_buttons] = c;
+	num_buttons++;
+	/**************/
+}
 
 int ESAT::main(int argc, char **argv) {
-	int exit, start = 0;
+	int exit = 0, start = 0;
+	tAsteroid asteroids[500];
+	int num_asteroids = 0;
+
 
 	ESAT::WindowInit(win_width, win_height);
 
 	initText();
+	
+	initMainMenu();
+	createAsteroids(asteroids, &num_asteroids);
 
-	//while (ESAT::WindowIsOpened() && !exit) {
+	while (ESAT::WindowIsOpened() && !exit) {
 
-	//if (start)
-	game();
-	//else
-	//Mainmenu();
+		if (start)
+			game();
+		else {
+			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
+				exit = 1;
+			
+			mainMenu();
+			moveAsteroids(asteroids, num_asteroids);
+			printAsteroids(asteroids, num_asteroids);
+		}
 
-	ESAT::DrawClear(0, 0, 0);
-	ESAT::WindowFrame();
-	//}
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
+	}
 
 	ESAT::WindowDestroy();
 	return 0;
