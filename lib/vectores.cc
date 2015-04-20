@@ -25,12 +25,25 @@ typedef struct {
 	float y;
 } Point2, Vec2;
 
+typedef struct {
+	float x;
+	float y;
+	float z;
+} Vec3;
+
 typedef float Mat2[2][2];
+typedef float Mat3[3][3];
 
 
 void initVec2(Vec2 *v, float x, float y) {
 	(*v).x = x;
 	(*v).y = y;
+}
+
+void initVec3(Vec3 *v, float x, float y) {
+	(*v).x = x;
+	(*v).y = y;
+	(*v).z = 1;
 }
 
 void initPoint2(Point2 *p, float x, float y) {
@@ -208,283 +221,290 @@ void afineTransformFromPoint2(Point2 current, Mat2 m, Point2 origin, Point2 *res
 void drawLine(Point2 p1, Point2 p2) {
 	ESAT::DrawLine(p1.x, p1.y, p2.x, p2.y);
 }
+
+void MultMat3(Mat3 m1, Mat3 m2, Mat3 *result) {}
+void MultMat3vec3(Mat3 m, Vec3 v, Vec3 *result) {}
+void Mat3Scale(Mat3 m1, float n, Mat3 *m2) {}
+void Mat3Rotate(Mat3 *m, float angle) {}
+void Mat3Translate() {}
+
 /****************** Funciones de prueba de diferentes conceptos ahead ********************/
 
 /*
 int rotatingSquare_main() {
-	Point2 center;
-	Vec2 vectors[4], vectors2[4];
-	int i;
-	float length = 250;
+Point2 center;
+Vec2 vectors[4], vectors2[4];
+int i;
+float length = 250;
 
-	float color[4] = { 255, 255, 255, 255 };
-	float angle = 1;
-	Mat2 rotation;
-
-	
-	initPoint2(&center, win_width / 2, win_height / 2);
-
-	
-	initVec2(&vectors[0], -length, length);
-	initVec2(&vectors[1], length, length);
-	initVec2(&vectors[2], length, -length);
-	initVec2(&vectors[3], -length, -length);
+float color[4] = { 255, 255, 255, 255 };
+float angle = 1;
+Mat2 rotation;
 
 
-	ESAT::WindowInit(win_width, win_height);
+initPoint2(&center, win_width / 2, win_height / 2);
 
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		ESAT::DrawClear(150, 150, 150);
+initVec2(&vectors[0], -length, length);
+initVec2(&vectors[1], length, length);
+initVec2(&vectors[2], length, -length);
+initVec2(&vectors[3], -length, -length);
 
-		//Asignamos valores a la matriz de rotación
-		initMat2(&rotation, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
 
-		//rotamos el cuadrado
-		for (i = 0; i < 4; i++) {
-			multMat2Vec2(rotation, vectors[i], &vectors2[i]);
-			//rotateVec2(&vectors[i], 0.05);
-		}
+ESAT::WindowInit(win_width, win_height);
 
-		printSquare(center, vectors, color);
+while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		//Copiamos vect2 en vect
-		for (i = 0; i < 4; i++) {
-			vectors[i] = vectors2[i];
-		}
+ESAT::DrawClear(150, 150, 150);
 
-		ESAT::WindowFrame();
-	}
+//Asignamos valores a la matriz de rotación
+initMat2(&rotation, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
 
-	ESAT::WindowDestroy();
-	return 0;
+//rotamos el cuadrado
+for (i = 0; i < 4; i++) {
+multMat2Vec2(rotation, vectors[i], &vectors2[i]);
+//rotateVec2(&vectors[i], 0.05);
+}
+
+printSquare(center, vectors, color);
+
+//Copiamos vect2 en vect
+for (i = 0; i < 4; i++) {
+vectors[i] = vectors2[i];
+}
+
+ESAT::WindowFrame();
+}
+
+ESAT::WindowDestroy();
+return 0;
 }
 int arrow_main() {
-	Point2 center, mouse;
-	Vec2 vector, arrow_base;
-	float arrow_width = 15.0f;
+Point2 center, mouse;
+Vec2 vector, arrow_base;
+float arrow_width = 15.0f;
 
-	Vec2 v1, v2, v3;
-	Point2 p1, p2, p3;
+Vec2 v1, v2, v3;
+Point2 p1, p2, p3;
 
-	//Iniciamos el centro de origen del vector
-	initPoint2(&center, win_width / 2, win_height / 2);
+//Iniciamos el centro de origen del vector
+initPoint2(&center, win_width / 2, win_height / 2);
 
-	ESAT::WindowInit(win_width, win_height);
+ESAT::WindowInit(win_width, win_height);
 
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		ESAT::DrawClear(150, 150, 150);
+ESAT::DrawClear(150, 150, 150);
 
-		//Dibujamos un vector desde el centro de la pantalla hasta la posición del cursor
-		initPoint2(&mouse, ESAT::MousePositionX(), ESAT::MousePositionY());
-		initVec2FromPoints(&vector, center, mouse);
-		DrawVec2(vector, center);
+//Dibujamos un vector desde el centro de la pantalla hasta la posición del cursor
+initPoint2(&mouse, ESAT::MousePositionX(), ESAT::MousePositionY());
+initVec2FromPoints(&vector, center, mouse);
+DrawVec2(vector, center);
 
-		//Obtenemos el vector base de la flecha de la longitud especificada
-		perpendicularVec2(vector, &arrow_base);
-		normalizeVec2(arrow_base, &arrow_base);
-		scaleVec2(arrow_base, arrow_width, &arrow_base);
+//Obtenemos el vector base de la flecha de la longitud especificada
+perpendicularVec2(vector, &arrow_base);
+normalizeVec2(arrow_base, &arrow_base);
+scaleVec2(arrow_base, arrow_width, &arrow_base);
 
 
-		//Base derecha de la flecha
-		normalizeVec2(vector, &v1);
-		scaleVec2(v1, arrow_width, &v1);
-		SubstractVec2(vector, v1, &v1);
-		AddPoint2Vec2(center, v1, &p1);
-		AddPoint2Vec2(p1, arrow_base, &p2);
-		DrawVec2(arrow_base, p1);
+//Base derecha de la flecha
+normalizeVec2(vector, &v1);
+scaleVec2(v1, arrow_width, &v1);
+SubstractVec2(vector, v1, &v1);
+AddPoint2Vec2(center, v1, &p1);
+AddPoint2Vec2(p1, arrow_base, &p2);
+DrawVec2(arrow_base, p1);
 
-		//Base izquierda de la flecha
-		scaleVec2(arrow_base, -1, &arrow_base);
-		AddPoint2Vec2(p1, arrow_base, &p3);
-		DrawVec2(arrow_base, p1);
+//Base izquierda de la flecha
+scaleVec2(arrow_base, -1, &arrow_base);
+AddPoint2Vec2(p1, arrow_base, &p3);
+DrawVec2(arrow_base, p1);
 
-		//Laterales de la flecha
-		initVec2FromPoints(&v2, p2, mouse);
-		DrawVec2(v2, p2);
-		initVec2FromPoints(&v3, p3, mouse);
-		DrawVec2(v3, p3);
+//Laterales de la flecha
+initVec2FromPoints(&v2, p2, mouse);
+DrawVec2(v2, p2);
+initVec2FromPoints(&v3, p3, mouse);
+DrawVec2(v3, p3);
 
-		ESAT::WindowFrame();
-	}
+ESAT::WindowFrame();
+}
 
-	ESAT::WindowDestroy();
-	return 0;
+ESAT::WindowDestroy();
+return 0;
 }
 int monigote_main() {
-	Vec2 vectors[9];
-	Point2 points[9];
-	Point2 p;
-	Vec2 v, v2;
-	Mat2 rotation, scaling, transform;
-	float angle = 40;
-	float scale = 2.1;
+Vec2 vectors[9];
+Point2 points[9];
+Point2 p;
+Vec2 v, v2;
+Mat2 rotation, scaling, transform;
+float angle = 40;
+float scale = 2.1;
 
-	int i;
+int i;
 
-	//puntos cuerpo
-	initPoint2(&points[0], 200, 200);
-	initPoint2(&points[1], 200, 230);
-	initPoint2(&points[2], 200, 230);
-	initPoint2(&points[3], 200, 300);
-	initPoint2(&points[4], 200, 300);
-	//puntos cabeza
-	initPoint2(&points[5], 180, 200);
-	initPoint2(&points[6], 220, 200);
-	initPoint2(&points[7], 220, 160);
-	initPoint2(&points[8], 180, 160);
+//puntos cuerpo
+initPoint2(&points[0], 200, 200);
+initPoint2(&points[1], 200, 230);
+initPoint2(&points[2], 200, 230);
+initPoint2(&points[3], 200, 300);
+initPoint2(&points[4], 200, 300);
+//puntos cabeza
+initPoint2(&points[5], 180, 200);
+initPoint2(&points[6], 220, 200);
+initPoint2(&points[7], 220, 160);
+initPoint2(&points[8], 180, 160);
 
-	//vectores cuerpo
-	initVec2(&vectors[0], 0.0f, 100.0f);
-	initVec2(&vectors[1], 50.0f, 40.0f);
-	initVec2(&vectors[2], -50.0f, 40.0f);
-	initVec2(&vectors[3], 50.0f, 50.0f);
-	initVec2(&vectors[4], -50.0f, 50.0f);
-	//vectores cabeza
-	initVec2(&vectors[5], 40.0f, 0.0f);
-	initVec2(&vectors[6], 0.0f, -40.0f);
-	initVec2(&vectors[7], -40.0f, 0.0f);
-	initVec2(&vectors[8], 0.0f, 40.0f);
+//vectores cuerpo
+initVec2(&vectors[0], 0.0f, 100.0f);
+initVec2(&vectors[1], 50.0f, 40.0f);
+initVec2(&vectors[2], -50.0f, 40.0f);
+initVec2(&vectors[3], 50.0f, 50.0f);
+initVec2(&vectors[4], -50.0f, 50.0f);
+//vectores cabeza
+initVec2(&vectors[5], 40.0f, 0.0f);
+initVec2(&vectors[6], 0.0f, -40.0f);
+initVec2(&vectors[7], -40.0f, 0.0f);
+initVec2(&vectors[8], 0.0f, 40.0f);
 
-	ESAT::WindowInit(win_width, win_height);
+ESAT::WindowInit(win_width, win_height);
 
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		ESAT::DrawClear(150, 150, 150);
+ESAT::DrawClear(150, 150, 150);
 
-		//Monigote inicial
-		for (i = 0; i < 9; i++) {
-			DrawVec2(vectors[i], points[i]);
-		}
+//Monigote inicial
+for (i = 0; i < 9; i++) {
+DrawVec2(vectors[i], points[i]);
+}
 
-		//Matriz de rotación
-		initMat2(&rotation, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
-		//Matriz de escalado
-		initMat2(&scaling, scale, 0, 0, scale);
-		//Combinamos ambas matrices
-		multMat2(rotation, scaling, &transform);
+//Matriz de rotación
+initMat2(&rotation, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
+//Matriz de escalado
+initMat2(&scaling, scale, 0, 0, scale);
+//Combinamos ambas matrices
+multMat2(rotation, scaling, &transform);
 
-		//Creamos otro monigote a la derecha del inicial
-		for (i = 0; i < 9; i++) {
-			initVec2(&v, 450, 0);
-			AddPoint2Vec2(points[i], v, &p);
+//Creamos otro monigote a la derecha del inicial
+for (i = 0; i < 9; i++) {
+initVec2(&v, 450, 0);
+AddPoint2Vec2(points[i], v, &p);
 
-			multMat2Vec2(transform, vectors[i], &v);
-			DrawVec2(v, p);
-		}
+multMat2Vec2(transform, vectors[i], &v);
+DrawVec2(v, p);
+}
 
-		ESAT::WindowFrame();
-	}
+ESAT::WindowFrame();
+}
 
-	ESAT::WindowDestroy();
-	return 0;
+ESAT::WindowDestroy();
+return 0;
 }
 */
 /*
 int planeta_main() {
-	
-	Point2 center, sq_center;
-	Mat2 rotation, translation;
-	float color[4] = { 255, 255, 255, 255 };
-	Vec2 square[4], vectors[4], vectors2[4], v1;
-	float length = 20, distance = 200;
-	float angle_rot = 5, angle_trans = 1;
-	int i;
+
+Point2 center, sq_center;
+Mat2 rotation, translation;
+float color[4] = { 255, 255, 255, 255 };
+Vec2 square[4], vectors[4], vectors2[4], v1;
+float length = 20, distance = 200;
+float angle_rot = 5, angle_trans = 1;
+int i;
 
 
-	//Iniciamos el centro de origen de la translación
-	initPoint2(&center, win_width / 2, win_height / 2);
-	//Y el centro de la figura
-	initPoint2(&sq_center, center.x + 300, center.y);
-	//Iniciamos el vector que une ambos centros
-	initVec2FromPoints(&v1, center, sq_center);
+//Iniciamos el centro de origen de la translación
+initPoint2(&center, win_width / 2, win_height / 2);
+//Y el centro de la figura
+initPoint2(&sq_center, center.x + 300, center.y);
+//Iniciamos el vector que une ambos centros
+initVec2FromPoints(&v1, center, sq_center);
 
-	//Matrices de rotación
-	initMat2(&rotation, cos(rads(angle_rot)), -sin(rads(angle_rot)), sin(rads(angle_rot)), cos(rads(angle_rot)));
-	initMat2(&translation, cos(rads(angle_trans)), -sin(rads(angle_trans)), sin(rads(angle_trans)), cos(rads(angle_trans)));
+//Matrices de rotación
+initMat2(&rotation, cos(rads(angle_rot)), -sin(rads(angle_rot)), sin(rads(angle_rot)), cos(rads(angle_rot)));
+initMat2(&translation, cos(rads(angle_trans)), -sin(rads(angle_trans)), sin(rads(angle_trans)), cos(rads(angle_trans)));
 
-	//Crear vectores para el cuadrado, que determinan sus aristas partiendo de su centro
-	initVec2(&vectors[0], -length, length);
-	initVec2(&vectors[1], length, length);
-	initVec2(&vectors[2], length, -length);
-	initVec2(&vectors[3], -length, -length);
+//Crear vectores para el cuadrado, que determinan sus aristas partiendo de su centro
+initVec2(&vectors[0], -length, length);
+initVec2(&vectors[1], length, length);
+initVec2(&vectors[2], length, -length);
+initVec2(&vectors[3], -length, -length);
 
 
-	ESAT::WindowInit(win_width, win_height);
+ESAT::WindowInit(win_width, win_height);
 
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		ESAT::DrawClear(150, 150, 150);
+ESAT::DrawClear(150, 150, 150);
 
-		//recalculamos el vector que une ambos centros, aplicándole una rotación
-		multMat2Vec2(translation, v1, &v1);
-		//Calculamos el nuevo centro del cuadrado sumándole v1 al centro de la pantalla
-		AddPoint2Vec2(center, v1, &sq_center);
+//recalculamos el vector que une ambos centros, aplicándole una rotación
+multMat2Vec2(translation, v1, &v1);
+//Calculamos el nuevo centro del cuadrado sumándole v1 al centro de la pantalla
+AddPoint2Vec2(center, v1, &sq_center);
 
-		//rotamos cada uno de los vectores del cuadrado
-		for (i = 0; i < 4; i++) {
-			multMat2Vec2(rotation, vectors[i], &vectors[i]);
-		}
+//rotamos cada uno de los vectores del cuadrado
+for (i = 0; i < 4; i++) {
+multMat2Vec2(rotation, vectors[i], &vectors[i]);
+}
 
-		//Pintamos cosas
-		printSquare(sq_center, vectors, color);
-		DrawVec2(v1, center);
-		ESAT::WindowFrame();
-	}
+//Pintamos cosas
+printSquare(sq_center, vectors, color);
+DrawVec2(v1, center);
+ESAT::WindowFrame();
+}
 
-	ESAT::WindowDestroy();
-	return 0;
+ESAT::WindowDestroy();
+return 0;
 }
 
 int planeta2_main() {
-	Point2 c[4], cp[4];
-	
-	initPoint2(&c[0], 100, 100);
-	initPoint2(&c[0], 150, 100);
-	initPoint2(&c[0], 150, 150);
-	initPoint2(&c[0], 100, 150);
+Point2 c[4], cp[4];
 
-	Mat2 m, ms;
-	Point2 origin;
-	float angle = 2;
-	initMat2(&m, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
-	initPoint2(&origin, 100, 100);
+initPoint2(&c[0], 100, 100);
+initPoint2(&c[0], 150, 100);
+initPoint2(&c[0], 150, 150);
+initPoint2(&c[0], 100, 150);
 
-	Mat2 m2;
-	Point2 origin2;
-	float angle2 = 5;
-	initMat2(&m2, cos(rads(angle2)), -sin(rads(angle2)), sin(rads(angle2)), cos(rads(angle2)));
-	initPoint2(&origin2, 200, 300);
+Mat2 m, ms;
+Point2 origin;
+float angle = 2;
+initMat2(&m, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
+initPoint2(&origin, 100, 100);
 
-	ESAT::WindowInit(win_width, win_height);
+Mat2 m2;
+Point2 origin2;
+float angle2 = 5;
+initMat2(&m2, cos(rads(angle2)), -sin(rads(angle2)), sin(rads(angle2)), cos(rads(angle2)));
+initPoint2(&origin2, 200, 300);
 
-	while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+ESAT::WindowInit(win_width, win_height);
 
-		ESAT::DrawClear(150, 150, 150);
+while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
 
-		for (int i = 0; i < 4; i++) {
-			Point2 tmp;
-			afineTransformFromPoint2(c[i], m, origin, &tmp);
-			afineTransformFromPoint2(tmp, m2, origin2, &cp[i]);
-		}
+ESAT::DrawClear(150, 150, 150);
 
-		ESAT::DrawSetStrokeColor(255, 255, 255, 255);
-		for (int i = 0; i < 4; i++) {
-			drawLine(cp[i], cp[(i - 1) % 4]);
-		}
+for (int i = 0; i < 4; i++) {
+Point2 tmp;
+afineTransformFromPoint2(c[i], m, origin, &tmp);
+afineTransformFromPoint2(tmp, m2, origin2, &cp[i]);
+}
 
-		ESAT::WindowFrame();
-	}
+ESAT::DrawSetStrokeColor(255, 255, 255, 255);
+for (int i = 0; i < 4; i++) {
+drawLine(cp[i], cp[(i - 1) % 4]);
+}
 
-	ESAT::WindowDestroy();
-	return 0;
+ESAT::WindowFrame();
+}
+
+ESAT::WindowDestroy();
+return 0;
 }
 
 /* El corazón de la bestia */
 /*
 int ESAT::main(int argc, char **argv) {
 
-	return planeta2_main();
+return planeta2_main();
 }
 */

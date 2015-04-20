@@ -1,6 +1,5 @@
 /*
 El clásico juego Asteroids, con registro y control de usuarios y puntuaciones.
-
 Marcos Vázquez Rey
 ESAT 2015
 */
@@ -68,13 +67,13 @@ typedef struct {
 	int points;
 	int lives;
 
-	std::string name;
-	std::string birthDate;
-	std::string province;
-	std::string country;
-	std::string user;
-	std::string pass;
-	std::string email;
+	char name[50];
+	char birthDate[50];
+	char province[50];
+	char country[50];
+	char user[50];
+	char pass[50];
+	char email[50];
 	int credits;
 } tPlayer;
 
@@ -192,7 +191,7 @@ void printThruster(tShip(*ship)) {
 }
 
 /*Comprueba si un punto está fuera del borde la pantalla y transforma p2 en el punto correcto.
-Devuelve 1 si el punto se encontraba fuera de los límites, o 0 en caso contrario*/ 
+Devuelve 1 si el punto se encontraba fuera de los límites, o 0 en caso contrario*/
 int checkScreenBorders(Point2 p1, Point2 *p2) {
 	//Comprobamos si la figura se sale de la pantalla
 	float posx = p1.x;
@@ -243,7 +242,7 @@ void moveShip(tShip(*ship)) {
 		(*ship).accx += sin(rads((*ship).dir));
 		(*ship).accy -= cos(rads((*ship).dir));
 		//Pintamos el motor si la suma de las aceleraciones resulta en número par
-		if ( ((int)( (*ship).accx + (*ship).accy ) % 2) == 0)
+		if (((int)((*ship).accx + (*ship).accy) % 2) == 0)
 			printThruster(&(*ship));
 	}
 
@@ -273,14 +272,14 @@ void moveShip(tShip(*ship)) {
 	int out = checkScreenBorders((*ship).figura.center, &newpos);
 	if (out)
 		recalculateCoordinates(&(*ship).figura, newpos, 1);
-	
+
 
 	//Aplicamos una deceleración gradual en ambos ejes de movimiento
 	if (abs((*ship).accx) > 0)
 		(*ship).accx -= ((*ship).accx / 100);
 	if (abs((*ship).accy) > 0)
 		(*ship).accy -= ((*ship).accy / 100);
-	
+
 }
 
 /* Calcula el centroide y devuelve los puntos x e y pertenecientes al centro del polígono */
@@ -378,7 +377,7 @@ tShip createShip(int width, int height) {
 /* Ejecuta un rayCast sobre un polígono y devuelve si los puntos indicados se encuentran dentro del area del mismo */
 int rayCast(tFigura figura, Point2 p) {
 	int i, j, c = 0;
-	
+
 	for (i = 0, j = figura.num_vertices - 1; i < figura.num_vertices; j = i++) {
 		if (((figura.vertices[i].y > p.y) != (figura.vertices[j].y > p.y)) &&
 			(p.x < (figura.vertices[j].x - figura.vertices[i].x) * (p.y - figura.vertices[i].y) / (figura.vertices[j].y - figura.vertices[i].y) + figura.vertices[i].x))
@@ -394,7 +393,7 @@ void shoot(tShip *ship, tShot shots[50], int *num_shots) {
 
 	(*ship).figura.age = 0;
 	shot.pos = (*ship).figura.vertices[0];
-	
+
 	shot.accx = sin(rads((*ship).dir)) * speed;
 	shot.accy = cos(rads((*ship).dir)) * -speed;
 	shot.age = 0;
@@ -402,8 +401,8 @@ void shoot(tShip *ship, tShot shots[50], int *num_shots) {
 
 	shots[*num_shots] = shot;
 	*num_shots += 1;
-  	speed = speed;
-	
+	speed = speed;
+
 }
 
 /* Crea un disparo desde el ovni */
@@ -422,7 +421,7 @@ void shoot(tShip *ship, tShot shots[50], int *num_shots, tOvni *ovni) {
 		Vec2 v;
 		initVec2FromPoints(&v, (*ovni).figura.center, (*ship).figura.center);
 		normalizeVec2(v, &v);
-		
+
 		shot.accx = (v.x) * speed;
 		shot.accy = (v.y) * speed;
 	}
@@ -621,7 +620,7 @@ void breakAsteroid(tAsteroid asteroids[50], int i, int *num_asteroids, int score
 		*num_asteroids += 1;
 	}
 	else {
-		asteroids[i] = asteroids[*num_asteroids-1];
+		asteroids[i] = asteroids[*num_asteroids - 1];
 		*num_asteroids -= 1;
 	}
 }
@@ -636,7 +635,7 @@ void checkShotsAsteroidsHit(tAsteroid asteroids[50], int *num_asteroids, tShot s
 		for (j = 0; j < *num_asteroids && !hit; j++) {
 			if (rayCast(asteroids[j].figura, shots[i].pos) == 1) {
 				//Partimos el asteroide
-				breakAsteroid(asteroids, j, &(*num_asteroids), 1);
+				breakAsteroid(asteroids, j, &(*num_asteroids), shots[i].owner);
 				//Eliminamos el disparo
 				removeShot(shots, i, &(*num_shots));
 				hit = 1;
@@ -653,12 +652,12 @@ void destroyShip(tShip *ship) {
 	int i, j;
 	Vec2 dir;
 
-	initPoint2(&p, win_width/2, win_height/2);
-	
+	initPoint2(&p, win_width / 2, win_height / 2);
+
 	(*ship).state = 2;
 	(*ship).figura.age = 0;
 
-	for (i = 0, j = 0; i < 8; i++, j+=2) {
+	for (i = 0, j = 0; i < 8; i++, j += 2) {
 		initVec2(&dir, random(20) * random_sign(), random(20) * random_sign());
 		(*ship).destroyed_dir[i] = dir;
 		initPoint2(&(*ship).destroyed[i], (*ship).figura.center.x + dir.x, (*ship).figura.center.y + dir.y);
@@ -671,8 +670,6 @@ void destroyShip(tShip *ship) {
 
 void destroyOvni(tOvni *ovni) {
 	Point2 p;
-	int i, j;
-	Vec2 dir;
 
 	initPoint2(&p, win_width / 2, win_height / 2);
 
@@ -683,20 +680,19 @@ void destroyOvni(tOvni *ovni) {
 /* Dibuja y avanza la animaciónd e destrucción de la nave. Devuelve 1 si la animación ha terminado*/
 void printShipDestruction(tShip *ship) {
 	int i;
-	Point2 p1, p2;
 	Vec2 scaled_speed;
 	float speed = 100;
 
 	ESAT::DrawSetStrokeColor(255, 255, 255, 255);
 	ESAT::DrawSetFillColor(0, 0, 0, 0);
-	
+
 	for (i = 0; i < 8; i += 2) {
 		drawLine((*ship).destroyed[i], (*ship).destroyed[i + 1]);
-		
+
 		scaleVec2((*ship).destroyed_dir[i], 1 / speed, &scaled_speed);
 		AddPoint2Vec2((*ship).destroyed[i], scaled_speed, &(*ship).destroyed[i]);
-		scaleVec2((*ship).destroyed_dir[i+1], 1 / speed, &scaled_speed);
-		AddPoint2Vec2((*ship).destroyed[i+1], scaled_speed, &(*ship).destroyed[i+1]);
+		scaleVec2((*ship).destroyed_dir[i + 1], 1 / speed, &scaled_speed);
+		AddPoint2Vec2((*ship).destroyed[i + 1], scaled_speed, &(*ship).destroyed[i + 1]);
 	}
 }
 
@@ -738,7 +734,7 @@ void checkAsteroidsOvniHit(tAsteroid asteroids[50], int *num_asteroids, tOvni *o
 	}
 }
 
-void checkShotsOvniHit (tShot shots[5000], int *num_shots, tOvni *ovni) {
+void checkShotsOvniHit(tShot shots[5000], int *num_shots, tOvni *ovni) {
 	int i;
 	int hit = 0;
 
@@ -771,7 +767,7 @@ void checkShotsShipHit(tShot shots[5000], int *num_shots, tShip *ship) {
 }
 
 void checkShipOvniHit(tShip *ship, tOvni *ovni) {
-	int i, j;
+	int i;
 	int hit = 0;
 
 	for (i = 0; i < (*ship).figura.num_vertices && !hit; i++) {
@@ -789,7 +785,7 @@ void checkShipOvniHit(tShip *ship, tOvni *ovni) {
 
 /* Itera sobre los elementos que pueden colisionar entre ellos y hace las comprobaciones pertinentes */
 void checkHits(tAsteroid asteroids[50], int *num_asteroids, tShot shots[5000], int *num_shots, tShip *ship, tOvni *ovni, int check_ovni) {
-	
+
 	checkShotsAsteroidsHit(asteroids, &(*num_asteroids), shots, &(*num_shots));
 	checkShipAsteroidsHit(asteroids, &(*num_asteroids), &(*ship));
 
@@ -809,7 +805,7 @@ void printShots(tShot shots[50], int num_shots) {
 		ESAT::DrawLine(
 			shots[i].pos.x, shots[i].pos.y,
 			shots[i].pos.x + 1, shots[i].pos.y + 1
-		);
+			);
 	}
 }
 
@@ -818,9 +814,9 @@ void createAsteroids(tAsteroid asteroids[500], int *num_asteroids) {
 	int i;
 	Point2 origin;
 
-	for (i = 0; i < ((level * 2) + 2) && *num_asteroids<=12; i++) {
+	for (i = 0; i < ((level * 2) + 2) && *num_asteroids <= 12; i++) {
 		initPoint2(&origin, 0, 0);
-		asteroids[*num_asteroids] = createAsteroid(random(4)+1, 1, origin);
+		asteroids[*num_asteroids] = createAsteroid(random(4) + 1, 1, origin);
 		*num_asteroids += 1;
 	}
 }
@@ -829,7 +825,7 @@ void createAsteroids(tAsteroid asteroids[500], int *num_asteroids) {
 void moveAsteroids(tAsteroid asteroids[50], int num_asteroids) {
 	int i, j;
 	Point2 newpos;
-	
+
 	for (i = 0; i < num_asteroids; i++) {
 		//Avanzamos todos los vértices del asteroide según la aceleración del mismo
 		for (j = 0; j < asteroids[i].figura.num_vertices; j++) {
@@ -849,7 +845,7 @@ void moveAsteroids(tAsteroid asteroids[50], int num_asteroids) {
 }
 
 void moveOvni(tOvni *ovni) {
-	int i, j;
+	int j;
 	Point2 newpos;
 
 	//Avanzamos todos los vértices del asteroide según la aceleración del mismo
@@ -910,7 +906,7 @@ void printInfo() {
 int showNextFrame(float diff, float *fps) {
 	char buf[100];
 	int t1 = (int)clock();
-	
+
 	if (t1 % 500 == 0) {
 		*fps = 1000 / diff;
 	}
@@ -920,8 +916,8 @@ int showNextFrame(float diff, float *fps) {
 
 	if (diff < 14)
 		return 0;
-	 
-	
+
+
 
 	return 1;
 }
@@ -1015,7 +1011,8 @@ int game() {
 				level++;
 				createAsteroids(asteroids, &num_asteroids);
 			}
-		} else {
+		}
+		else {
 			quit = 1;
 		}
 
@@ -1035,8 +1032,20 @@ typedef struct {
 	std::string txt;
 } tButton;
 
+typedef struct {
+	Point2 pos;
+	int size;
+	char txt[50];
+	int txt_lenght;
+	std::string title;
+} tTextBox;
+
 tButton buttons[10];
 int num_buttons = 0;
+
+tTextBox textBoxes[10];
+int num_textBoxes = 0;
+
 
 /* Dibuja un cuadrado con su esquina superior izquierda en las coordenadas indicadas */
 void drawButton(tButton button) {
@@ -1070,30 +1079,158 @@ void drawButton(tButton button) {
 //Comprueba y devuelve el número de botón pulsado
 int checkButtonsClick() {
 	int i, click = 0;
-	
+
 	for (i = 0; i < num_buttons && !click; i++) {
 		//Comprobamos que el click sea en el interior del botón
 		if (ESAT::MousePositionX() >(int)buttons[i].pos.x
-		&& ESAT::MousePositionX() < (int)buttons[i].pos.x + 2 * buttons[i].size
-		&& ESAT::MousePositionY() > (int)buttons[i].pos.y
-		&& ESAT::MousePositionY() < (int)buttons[i].pos.y + buttons[i].size) {
+			&& ESAT::MousePositionX() < (int)buttons[i].pos.x + 2 * buttons[i].size
+			&& ESAT::MousePositionY() > (int)buttons[i].pos.y
+			&& ESAT::MousePositionY() < (int)buttons[i].pos.y + buttons[i].size) {
 			click = 1;
 		}
 	}
-	return (click) ? i-1 : -1;
+	return (click) ? i - 1 : -1;
+}
+
+
+//Escucha los clicks del ratón en el menú de login/registro
+int checkTextBoxesClick() {
+	int i, click = 0;
+
+	for (i = 0; i < num_textBoxes && !click; i++) {
+		//Comprobamos que el click sea en el interior del botón
+		if (ESAT::MousePositionX() > (int)textBoxes[i].pos.x
+			&& ESAT::MousePositionX() < (int)textBoxes[i].pos.x + 8 * textBoxes[i].size
+			&& ESAT::MousePositionY() > (int)textBoxes[i].pos.y
+			&& ESAT::MousePositionY() < (int)textBoxes[i].pos.y + textBoxes[i].size) {
+			click = 1;
+		}
+	}
+	return (click) ? i - 1 : -1;
+}
+
+
+/* Dibuja una caja vacía sobre la que se escribirá texto */
+void printTextBox(tTextBox box, int active) {
+	int padding = 30;
+
+	float pathPoints[] = { box.pos.x, box.pos.y,
+		box.pos.x + box.size*8.0f, box.pos.y,
+		box.pos.x + box.size*8.0f, box.pos.y + box.size,
+		box.pos.x, box.pos.y + box.size,
+		box.pos.x, box.pos.y
+	};
+
+
+	/*Color rgb interior del polígono*/
+	if (active)
+		ESAT::DrawSetFillColor(30, 30, 0);
+	else
+		ESAT::DrawSetFillColor(0, 0, 0);
+
+	ESAT::DrawSetStrokeColor(255, 255, 255);
+
+	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
+	ESAT::DrawSolidPath(pathPoints, 5, true);
+}
+
+
+void textEditor(Point2 pos, char str[50], int *length) {
+	int quit = 0;
+	char key;
+
+	key = ESAT::GetNextPressedKey();
+	if (key > 0) {
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter)) {
+			quit = 1;
+		}
+		else if (ESAT::IsKeyDown(8) && *length > 0) {
+			str[*length - 1] = '\0';
+			*length -= 1;
+		}
+		else {
+			str[*length] = key;
+			*length += 1;
+		}
+	}
+
+	ESAT::DrawText(pos.x, pos.y + 30, str);
+}
+
+
+void printTextBoxes(int active_box) {
+	int is_active;
+
+	for (int i = 0; i < num_textBoxes; i++) {
+		is_active = (active_box == i) ? 1 : 0;
+		ESAT::DrawSetFillColor(255, 255, 255);
+
+		char title[50];//as 1 char space for null is also required
+		strcpy_s(title, 50, textBoxes[i].title.c_str());
+
+		ESAT::DrawText(130.0f, textBoxes[i].pos.y + 30, title);
+		printTextBox(textBoxes[i], is_active);
+	}
+}
+
+
+/* Crea las cajas de texto para los menús de login/registro */
+void createTextBoxes() {
+	Point2 p;
+	int posy = 80;
+	char fields[7][50] = { "name", "birthDate", "province", "country", "user", "pass", "email" };
+
+	for (int i = 0; i < 7; i++) {
+		initPoint2(&p, 500, posy);
+		textBoxes[i].pos = p;
+		textBoxes[i].size = 40;
+		textBoxes[i].title = fields[i];
+		strcpy_s(textBoxes[i].txt, 50, "");
+		textBoxes[i].txt_lenght = 0;
+
+		num_textBoxes++;
+		posy += 55;
+	}
 }
 
 
 void logInMenu(int option) {
 	int quit = 0;
+	int active_box = -1;
+
+	char name[50];
+	char birthDate[50];
+	char province[50];
+	char country[50];
+	char user[50];
+	char pass[50];
+	char email[50];
+	int credits;
+
+	int length = 50;
+
+	createTextBoxes();
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
+
+		printTextBoxes(active_box);
+		
+		if (ESAT::MouseButtonDown(1)) {
+			active_box = checkTextBoxesClick();
+		}
+		if (active_box >= 0) {
+			textEditor(textBoxes[active_box].pos, textBoxes[active_box].txt, &textBoxes[active_box].txt_lenght);
+		}
+
+		ESAT::DrawSetFillColor(255, 255, 255);
+		ESAT::DrawSetStrokeColor(255, 255, 255);
+
 		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
 			if (option == 0) {
-				ESAT::DrawText(130.0f, 120.0f, "LOG IN");
+				ESAT::DrawText(130.0f, 50.0f, "LOG IN");
 			}
 			else {
-				ESAT::DrawText(130.0f, 120.0f, "REGISTER");
+				ESAT::DrawText(130.0f, 50.0f, "REGISTER");
 			}
 		}
 		else
@@ -1114,11 +1251,12 @@ void mainMenu() {
 
 	drawButton(buttons[0]);
 	drawButton(buttons[1]);
-	
+
 	if (ESAT::MouseButtonDown(1)) {
 		switch (checkButtonsClick()) {
 		case 0:
-			logInMenu(0);
+			//logInMenu(0);
+			game();
 			break;
 		case 1:
 			logInMenu(1);
@@ -1155,7 +1293,7 @@ int ESAT::main(int argc, char **argv) {
 	ESAT::WindowInit(win_width, win_height);
 
 	initText();
-	
+
 	initMainMenu();
 	createAsteroids(asteroids, &num_asteroids);
 
@@ -1166,7 +1304,7 @@ int ESAT::main(int argc, char **argv) {
 		else {
 			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
 				exit = 1;
-			
+
 			mainMenu();
 			moveAsteroids(asteroids, num_asteroids);
 			printAsteroids(asteroids, num_asteroids);
@@ -1178,4 +1316,4 @@ int ESAT::main(int argc, char **argv) {
 
 	ESAT::WindowDestroy();
 	return 0;
-}
+} 
