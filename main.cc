@@ -1098,7 +1098,7 @@ int checkTextBoxesClick() {
 
 	for (i = 0; i < num_textBoxes && !click; i++) {
 		//Comprobamos que el click sea en el interior del botón
-		if (ESAT::MousePositionX() > (int)textBoxes[i].pos.x
+		if (ESAT::MousePositionX() >(int)textBoxes[i].pos.x
 			&& ESAT::MousePositionX() < (int)textBoxes[i].pos.x + 8 * textBoxes[i].size
 			&& ESAT::MousePositionY() > (int)textBoxes[i].pos.y
 			&& ESAT::MousePositionY() < (int)textBoxes[i].pos.y + textBoxes[i].size) {
@@ -1141,7 +1141,7 @@ void printTextBox(tTextBox box, int active) {
 void textEditor(Point2 pos, char str[50], int *length) {
 	int quit = 0;
 	char key;
-	
+
 	key = ESAT::GetNextPressedKey();
 	if (key > 0) {
 		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter)) {
@@ -1177,22 +1177,31 @@ void printTextBoxes(int active_box) {
 
 
 /* Crea las cajas de texto para los menús de login/registro */
-void createTextBoxes() {
+void createTextBoxes(int option) {
 	Point2 p;
 	int posy = 80;
-	char fields[7][50] = { "name", "birthDate", "province", "country", "user", "pass", "email" };
+	int num_fields = 0;
+	char titles[7][50];
 
-	num_textBoxes = 0;
+	//Iniciamos los títulos para los campos de texto y los copiamos a la variable auxiliar que estará definida fuera del ámbito del bloque condicional
+	if (option == 1) {
+		char fields[7][50] = { "name", "birthDate", "province", "country", "user", "pass", "email" };
+		num_fields = num_textBoxes = 7;
+		std::memcpy(titles, fields, 350);
+	}
+	else {
+		char fields[2][50] = { "Username", "Password" };
+		num_fields = num_textBoxes = 2;
+		std::memcpy(titles, fields, 350);
+	}
 
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < num_fields; i++) {
 		initPoint2(&p, 500, posy);
 		textBoxes[i].pos = p;
 		textBoxes[i].size = 40;
-		textBoxes[i].title = fields[i];
+		textBoxes[i].title = titles[i];
 		strcpy_s(textBoxes[i].txt, 50, "");
 		textBoxes[i].txt_lenght = 0;
-
-		num_textBoxes++;
 		posy += 55;
 	}
 }
@@ -1201,7 +1210,6 @@ void createTextBoxes() {
 void initMainMenu() {
 	num_buttons = 0;
 
-	/* Crear botones del menú principal */
 	tButton b, c;
 	initPoint2(&b.pos, 350, 230);
 	b.txt = "LOG IN";
@@ -1218,7 +1226,7 @@ void initMainMenu() {
 }
 
 /* Crear botones del menú login/register */
-void initLogInMenu() {
+void initRegisterMenu() {
 	num_buttons = 0;
 
 	tButton b, c;
@@ -1236,40 +1244,61 @@ void initLogInMenu() {
 }
 
 
+/* Crear botones del menú login/register */
+void initLogInMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 150, 500);
+	b.txt = "LOG IN";
+	b.size = 70;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 600, 500);
+	c.txt = "CANCEL";
+	c.size = 70;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+
 /*********************** FICHEROS ***************************/
 
 //Devuelve el identificador del último registro del fichero
 int getLastPlayerId() {
 	FILE *f;
+	tPlayer reg;
 	int id;
 	int rcode;
 
 	rcode = fopen_s(&f, "players.dat", "r");
 
-	player.id = 0;
+	reg.id = 0;
 
 	if (rcode == 0) {
 		do {
-			fread(&player, sizeof(tPlayer), 1, f);
+			fread(&reg, sizeof(tPlayer), 1, f);
 		} while (!feof(f));
 
 		fclose(f);
 	}
 
-	return player.id;
+	return reg.id;
 }
 
 void savePlayer() {
 	FILE *f;
+	int bufferSize = 51;
 
 	//Leer datos del contacto desde los textBox y guardarlos en el tPlayer struct
-	strcpy_s(player.name, 50, textBoxes[0].txt);
-	strcpy_s(player.birthDate, 50, textBoxes[1].txt);
-	strcpy_s(player.province, 50, textBoxes[2].txt);
-	strcpy_s(player.country, 50, textBoxes[3].txt);
-	strcpy_s(player.user, 50, textBoxes[4].txt);
-	strcpy_s(player.pass, 50, textBoxes[5].txt);
-	strcpy_s(player.email, 50, textBoxes[6].txt);
+	strcpy_s(player.name, bufferSize, textBoxes[0].txt);
+	strcpy_s(player.birthDate, bufferSize, textBoxes[1].txt);
+	strcpy_s(player.province, bufferSize, textBoxes[2].txt);
+	strcpy_s(player.country, bufferSize, textBoxes[3].txt);
+	strcpy_s(player.user, bufferSize, textBoxes[4].txt);
+	strcpy_s(player.pass, bufferSize, textBoxes[5].txt);
+	strcpy_s(player.email, bufferSize, textBoxes[6].txt);
 	player.credits = 10;
 
 	player.id = getLastPlayerId() + 1;
@@ -1281,6 +1310,32 @@ void savePlayer() {
 	fclose(f);
 }
 
+
+int checkLogin() {
+	FILE *f;
+	tPlayer reg;
+
+	int rcode;
+
+	rcode = fopen_s(&f, "players.dat", "rb");
+
+	if (rcode == 0) {
+		rcode = 1;
+		do {
+			fread(&reg, sizeof(tPlayer), 1, f);
+			if (!feof(f)){
+				if (strncmp(textBoxes[0].txt, reg.user, 50) == 0 && strncmp(textBoxes[1].txt, reg.pass, 50) == 0) {
+					rcode = 0;
+				}
+			}
+		} while (!feof(f) && rcode == 1);
+		fclose(f);
+	}
+
+
+	return !rcode;
+}
+
 /*********************** FIN DE FICHEROS ***************************/
 
 
@@ -1289,25 +1344,30 @@ void logInMenu(int option) {
 	int active_box = -1;
 	int key = 0;
 
-	//int length = 50;
-
 	//Limpiar el buffer del teclado al entrar en este menú
 	do {
 		key = ESAT::GetNextPressedKey();
 	} while (key > 0);
 
-	createTextBoxes();
-	initLogInMenu();
+	createTextBoxes(option);
+
+	if (option == 1)
+		initRegisterMenu();
+	else
+		initLogInMenu();
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
 
 		printTextBoxes(active_box);
-		
+
 		drawButton(buttons[0]);
 		drawButton(buttons[1]);
 
 		if (ESAT::MouseButtonDown(1)) {
 			active_box = checkTextBoxesClick();
+		}
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Tab) && active_box<num_textBoxes) {
+			active_box++;
 		}
 		if (active_box >= 0) {
 			textEditor(textBoxes[active_box].pos, textBoxes[active_box].txt, &textBoxes[active_box].txt_lenght);
@@ -1321,7 +1381,12 @@ void logInMenu(int option) {
 		if (ESAT::MouseButtonDown(1)) {
 			switch (checkButtonsClick()) {
 			case 0:
-				logInMenu(1);
+				if (option == 1)
+					savePlayer();
+				else {
+					if (checkLogin())
+						game();
+				}
 				break;
 			case 1:
 				quit = 1;
@@ -1364,8 +1429,7 @@ void mainMenu() {
 	if (ESAT::MouseButtonDown(1)) {
 		switch (checkButtonsClick()) {
 		case 0:
-			//logInMenu(0);
-			game();
+			logInMenu(0);
 			break;
 		case 1:
 			logInMenu(1);
@@ -1408,4 +1472,4 @@ int ESAT::main(int argc, char **argv) {
 
 	ESAT::WindowDestroy();
 	return 0;
-} 
+}
