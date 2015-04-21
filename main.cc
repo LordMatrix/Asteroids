@@ -59,7 +59,7 @@ typedef struct {
 } tAsteroid;
 
 typedef struct {
-	int code;
+	int id;
 	tShip ship;
 	tShot iShots;
 	int frame;
@@ -93,7 +93,6 @@ tPlayer player;
 
 
 void initPlayers() {
-	player.code = 0;
 	player.threshold = 50;
 	player.points = 0;
 	player.lives = 3;
@@ -1132,13 +1131,17 @@ void printTextBox(tTextBox box, int active) {
 
 	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
 	ESAT::DrawSolidPath(pathPoints, 5, true);
+
+	/* Escribe el texto corrspondiente a la caja de texto actual */
+	ESAT::DrawSetFillColor(150, 150, 150);
+	ESAT::DrawText(box.pos.x, box.pos.y + 30, box.txt);
 }
 
 
 void textEditor(Point2 pos, char str[50], int *length) {
 	int quit = 0;
 	char key;
-
+	
 	key = ESAT::GetNextPressedKey();
 	if (key > 0) {
 		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter)) {
@@ -1148,13 +1151,12 @@ void textEditor(Point2 pos, char str[50], int *length) {
 			str[*length - 1] = '\0';
 			*length -= 1;
 		}
-		else {
+		else if (*length<13) {
 			str[*length] = key;
 			*length += 1;
 		}
 	}
 
-	ESAT::DrawText(pos.x, pos.y + 30, str);
 }
 
 
@@ -1180,6 +1182,8 @@ void createTextBoxes() {
 	int posy = 80;
 	char fields[7][50] = { "name", "birthDate", "province", "country", "user", "pass", "email" };
 
+	num_textBoxes = 0;
+
 	for (int i = 0; i < 7; i++) {
 		initPoint2(&p, 500, posy);
 		textBoxes[i].pos = p;
@@ -1193,28 +1197,115 @@ void createTextBoxes() {
 	}
 }
 
+/* Crear botones del menú principal */
+void initMainMenu() {
+	num_buttons = 0;
+
+	/* Crear botones del menú principal */
+	tButton b, c;
+	initPoint2(&b.pos, 350, 230);
+	b.txt = "LOG IN";
+	b.size = 100;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 380);
+	c.txt = "REGISTER";
+	c.size = 100;
+	buttons[num_buttons] = c;
+	num_buttons++;
+	/**************/
+}
+
+/* Crear botones del menú login/register */
+void initLogInMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 150, 500);
+	b.txt = "SAVE";
+	b.size = 70;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 600, 500);
+	c.txt = "CANCEL";
+	c.size = 70;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+
+/*********************** FICHEROS ***************************/
+
+//Devuelve el identificador del último registro del fichero
+int getLastPlayerId() {
+	FILE *f;
+	int id;
+	int rcode;
+
+	rcode = fopen_s(&f, "players.dat", "r");
+
+	player.id = 0;
+
+	if (rcode == 0) {
+		do {
+			fread(&player, sizeof(tPlayer), 1, f);
+		} while (!feof(f));
+
+		fclose(f);
+	}
+
+	return player.id;
+}
+
+void savePlayer() {
+	FILE *f;
+
+	//Leer datos del contacto desde los textBox y guardarlos en el tPlayer struct
+	strcpy_s(player.name, 50, textBoxes[0].txt);
+	strcpy_s(player.birthDate, 50, textBoxes[1].txt);
+	strcpy_s(player.province, 50, textBoxes[2].txt);
+	strcpy_s(player.country, 50, textBoxes[3].txt);
+	strcpy_s(player.user, 50, textBoxes[4].txt);
+	strcpy_s(player.pass, 50, textBoxes[5].txt);
+	strcpy_s(player.email, 50, textBoxes[6].txt);
+	player.credits = 10;
+
+	player.id = getLastPlayerId() + 1;
+
+	fopen_s(&f, "players.dat", "a");
+
+	fwrite(&player, sizeof(tPlayer), 1, f);
+
+	fclose(f);
+}
+
+/*********************** FIN DE FICHEROS ***************************/
+
 
 void logInMenu(int option) {
 	int quit = 0;
 	int active_box = -1;
+	int key = 0;
 
-	char name[50];
-	char birthDate[50];
-	char province[50];
-	char country[50];
-	char user[50];
-	char pass[50];
-	char email[50];
-	int credits;
+	//int length = 50;
 
-	int length = 50;
+	//Limpiar el buffer del teclado al entrar en este menú
+	do {
+		key = ESAT::GetNextPressedKey();
+	} while (key > 0);
 
 	createTextBoxes();
+	initLogInMenu();
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
 
 		printTextBoxes(active_box);
 		
+		drawButton(buttons[0]);
+		drawButton(buttons[1]);
+
 		if (ESAT::MouseButtonDown(1)) {
 			active_box = checkTextBoxesClick();
 		}
@@ -1222,8 +1313,23 @@ void logInMenu(int option) {
 			textEditor(textBoxes[active_box].pos, textBoxes[active_box].txt, &textBoxes[active_box].txt_lenght);
 		}
 
+		ESAT::DrawSetTextSize(30);
 		ESAT::DrawSetFillColor(255, 255, 255);
 		ESAT::DrawSetStrokeColor(255, 255, 255);
+
+		/* Comprobar si se hace click sobre los botones de este menú */
+		if (ESAT::MouseButtonDown(1)) {
+			switch (checkButtonsClick()) {
+			case 0:
+				logInMenu(1);
+				break;
+			case 1:
+				quit = 1;
+				break;
+			default:
+				break;
+			}
+		}
 
 		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
 			if (option == 0) {
@@ -1239,7 +1345,10 @@ void logInMenu(int option) {
 		ESAT::DrawClear(0, 0, 0);
 		ESAT::WindowFrame();
 	}
+
+	initMainMenu();
 }
+
 
 void mainMenu() {
 
@@ -1265,23 +1374,6 @@ void mainMenu() {
 			break;
 		}
 	}
-}
-
-void initMainMenu() {
-	/* Crear botones del menú principal */
-	tButton b, c;
-	initPoint2(&b.pos, 350, 230);
-	b.txt = "LOG IN";
-	b.size = 100;
-	buttons[num_buttons] = b;
-	num_buttons++;
-
-	initPoint2(&c.pos, 350, 380);
-	c.txt = "REGISTER";
-	c.size = 100;
-	buttons[num_buttons] = c;
-	num_buttons++;
-	/**************/
 }
 
 int ESAT::main(int argc, char **argv) {
