@@ -1151,9 +1151,10 @@ void textEditor(Point2 pos, char str[50], int *length) {
 			str[*length - 1] = '\0';
 			*length -= 1;
 		}
-		else if (*length<13) {
+		else if (*length<13 && key !=9) {
 			str[*length] = key;
 			*length += 1;
+			str[*length] = '\0';
 		}
 	}
 
@@ -1222,7 +1223,6 @@ void initMainMenu() {
 	c.size = 100;
 	buttons[num_buttons] = c;
 	num_buttons++;
-	/**************/
 }
 
 /* Crear botones del menú login/register */
@@ -1263,6 +1263,30 @@ void initLogInMenu() {
 }
 
 
+/* Crear botones del menú principal de usuario identificado */
+void initLoggedInMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 350, 230);
+	b.txt = "START GAME";
+	b.size = 90;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 350);
+	c.txt = "HIGHSCORES";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 470);
+	c.txt = "LOG OUT";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
 /*********************** FICHEROS ***************************/
 
 //Devuelve el identificador del último registro del fichero
@@ -1289,7 +1313,7 @@ int getLastPlayerId() {
 
 void savePlayer() {
 	FILE *f;
-	int bufferSize = 51;
+	int bufferSize = 50;
 
 	//Leer datos del contacto desde los textBox y guardarlos en el tPlayer struct
 	strcpy_s(player.name, bufferSize, textBoxes[0].txt);
@@ -1339,6 +1363,49 @@ int checkLogin() {
 /*********************** FIN DE FICHEROS ***************************/
 
 
+void LoggedInMenu() {
+	int quit = 0;
+
+	
+	ESAT::DrawSetFillColor(255, 255, 255);
+	ESAT::DrawSetStrokeColor(255, 255, 255);
+
+	while (ESAT::WindowIsOpened() && quit == 0) {
+
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
+			quit = 1;
+
+		ESAT::DrawSetTextSize(100);
+		ESAT::DrawText(130.0f, 160.0f, "ASTEROIDS");
+
+		drawButton(buttons[0]);
+		drawButton(buttons[1]);
+		drawButton(buttons[2]);
+
+		if (ESAT::MouseButtonDown(1)) {
+			switch (checkButtonsClick()) {
+			case 0:
+				game();
+				break;
+			case 1:
+				//highScores();
+				break;
+			case 2:
+				quit = 1;
+				break;
+			default:
+				break;
+			}
+		}
+
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
+	}
+
+	initLogInMenu();
+}
+
+
 void logInMenu(int option) {
 	int quit = 0;
 	int active_box = -1;
@@ -1367,9 +1434,11 @@ void logInMenu(int option) {
 			active_box = checkTextBoxesClick();
 		}
 		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Tab) && active_box<num_textBoxes) {
+			fflush(stdin);
 			active_box++;
 		}
 		if (active_box >= 0) {
+			fflush(stdin);
 			textEditor(textBoxes[active_box].pos, textBoxes[active_box].txt, &textBoxes[active_box].txt_lenght);
 		}
 
@@ -1384,8 +1453,10 @@ void logInMenu(int option) {
 				if (option == 1)
 					savePlayer();
 				else {
-					if (checkLogin())
-						game();
+					if (checkLogin()) {
+						initLoggedInMenu();
+						LoggedInMenu();
+					}
 				}
 				break;
 			case 1:
@@ -1439,6 +1510,7 @@ void mainMenu() {
 		}
 	}
 }
+
 
 int ESAT::main(int argc, char **argv) {
 	int exit = 0, start = 0;
