@@ -1454,6 +1454,68 @@ int checkLogin() {
 
 /*********************** FIN DE FICHEROS ***************************/
 
+
+void lightBox(char txt[]) {
+	int i = 0;
+	int ttl = 1020;
+	int size = 400;
+	int y = 50;
+	int x = 200;
+	int fontAlpha, alpha = 0;
+	int padding = 50;
+	int quit = false;
+	
+
+	float pathPoints[] = { x, y,
+		x + size*1.5f, y,
+		x + size*1.5f, y + size,
+		x, y + size,
+		x, y
+	};
+
+	/*Color rgb interior del polígono*/
+
+	int color[] = { 200, 200, 200, alpha };
+	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+
+	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
+	ESAT::DrawSolidPath(pathPoints, 5, true);
+
+	/*Texto dentro del botón*/
+	ESAT::DrawSetFillColor(0, 0, 0, 255);
+	ESAT::DrawSetStrokeColor(0,0,0);
+	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
+	int font = (size / strlen(txt)) * 1.5;
+	ESAT::DrawSetTextSize(font);
+
+	//const char *txt2 = txt.c_str();
+	ESAT::DrawText(x + padding, y + padding * 2, txt);
+
+
+	while (ESAT::WindowIsOpened() &&  i < ttl) {
+		
+		//La transparencia del lightbox cambia en cada frame
+		if (i < ttl / 2 && alpha < 255)
+			alpha++;
+		else if (alpha > 0)
+			alpha--;
+
+		color[3] = alpha;
+		ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+		ESAT::DrawSolidPath(pathPoints, 5, true);
+		
+		//Idem para el texto con colores inversos al fondo del lightbox
+		fontAlpha = abs(0 + alpha);
+		ESAT::DrawSetFillColor(fontAlpha, fontAlpha, fontAlpha, 255);
+		ESAT::DrawSetStrokeColor(fontAlpha, fontAlpha, fontAlpha, 255);
+		ESAT::DrawText(x + padding, y + padding * 2, txt);
+		i++;
+
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
+	}
+}
+
 //Ordena puntuaciones de mayor a menor
 void scoreBubbleSort()
 {
@@ -1467,7 +1529,6 @@ void scoreBubbleSort()
 			if (highScores[d].score < highScores[d + 1].score)
 			{
 				/* Swapping */
-
 				t = highScores[d];
 				highScores[d] = highScores[d + 1];
 				highScores[d + 1] = t;
@@ -1682,8 +1743,10 @@ void logInMenu(int option) {
 		if (ESAT::MouseButtonDown(1)) {
 			switch (checkButtonsClick()) {
 			case 0:
-				if (option == 1)
+				if (option == 1) {
 					addPlayer();
+					lightBox("Player created");
+				}
 				else {
 					if (checkLogin()) {
 						initLoggedInMenu();
