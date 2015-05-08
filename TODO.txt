@@ -1,5 +1,4 @@
 - Mejorar el lightbox
-- Ajustar variables de ttl de disparos, número de disparos, cuando aparecen ovnis
 
 /* OPCIONALES */
 

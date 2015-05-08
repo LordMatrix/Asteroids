@@ -262,12 +262,6 @@ void moveShip(tShip(*ship)) {
 			printThruster(&(*ship));
 	}
 
-	//S -> Retroceder
-	else if (ESAT::IsKeyPressed(115)) {
-		(*ship).accx -= sin(rads((*ship).dir));
-		(*ship).accy += cos(rads((*ship).dir));
-	}
-
 	//G -> Hiperespacio
 	if (ESAT::IsKeyDown(103)) {
 		initPoint2(&newpos, random(win_width), random(win_height));
@@ -459,7 +453,7 @@ void removeShot(tShot shots[50], int i, int *num_shots) {
 /* Desplaza los disparos y los hace desaparecer si han recorrido la distancia máxima */
 void moveShots(tShot shots[50], int *num_shots) {
 	int i;
-	int max_age = 700;
+	int max_age = 80;
 
 	for (i = 0; i < *num_shots; i++) {
 		shots[i].pos.x += shots[i].accx;
@@ -950,7 +944,7 @@ int checkNextFrame(int show_fps) {
 //Guarda información sobre el jugador actual a disco
 void updatePlayer() {
 	FILE *f, *tmp;
-	tPlayer temp, updated;
+	tPlayer temp;
 
 	fopen_s(&tmp, "players.tmp", "wb");
 	fopen_s(&f, "players.dat", "rb");
@@ -1040,11 +1034,12 @@ int game() {
 				if (!pause) {
 					moveOvni(&ovni);
 					ovni.figura.age++;
+					//El ovni dispara cada X ciclos
 					if (ovni.figura.age % 200 == 0)
 						shoot(&ship, shots, &num_shots, &ovni);
 				}
 			}
-			else if (ship.figura.age % 500 == 0 && !pause)
+			else if (!pause && ship.figura.age > 0 && ship.figura.age % 500 == 0 && num_asteroids<6)
 				ovni = createOvni(random(2));
 
 			switch (ship.state) {
@@ -1054,7 +1049,7 @@ int game() {
 				if (!pause) {
 					moveShip(&ship);
 
-					if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space)) {
+					if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space) && num_shots<5) {
 						shoot(&ship, shots, &num_shots);
 					}
 					checkHits(asteroids, &num_asteroids, shots, &num_shots, &ship, &ovni, ovni.state == 0);
@@ -1496,7 +1491,7 @@ int checkPlayerExists() {
 void lightBox(char txt[]) {
 	int i = 0;
 	int ttl = 300;
-	int size = 300;
+	int size = 400;
 	int y = 50;
 	int x = 200;
 	int fontAlpha, alpha = 0;
