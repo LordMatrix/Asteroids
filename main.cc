@@ -100,10 +100,14 @@ int margin = 25;
 
 int level = 1;
 int pause = false;
+int player_improvedScore = 0;
 
 tPlayer player;
 tHighScore highScores[100];
 int num_highScores = 0;
+
+//Comprobación de tiempo transcurrido entre frames
+clock_t t1 = clock(), t2 = clock();
 
 void initPlayers() {
 	player.threshold = 50;
@@ -915,23 +919,33 @@ void printInfo() {
 }
 
 /* Comprueba si debe procesarse el siguiente frame y actualiza los FPS */
-int showNextFrame(float diff, float *fps) {
+void showFPS(float diff) {
 	char buf[100];
-	int t1 = (int)clock();
+	float fps;
 
-	if (t1 % 500 == 0) {
-		*fps = 1000 / diff;
-	}
-
-	sprintf_s(buf, 100, "%.2f FPS", *fps);
+	fps = CLOCKS_PER_SEC / diff;
+	sprintf_s(buf, 100, "%.2f FPS", fps);
 	ESAT::DrawText(650.0f, 30.0f, buf);
+}
 
-	if (diff < 14)
+//Comprueba el tiempo transcurrido desde el último frame e indica si debe mostrarse el siguiente
+int checkNextFrame(int show_fps) {
+	float diff;
+	int threshold = 14;
+
+	t2 = clock();
+	diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC) * 1000;
+	
+	if (diff > threshold) {
+		if (show_fps)
+			showFPS(diff);
+
+		t1 = clock();
 		return 0;
+	}
 
 	return 1;
 }
-
 
 //Guarda información sobre el jugador actual a disco
 void updatePlayer() {
@@ -958,16 +972,16 @@ void updatePlayer() {
 }
 
 
+
+
 int game() {
 	tShip ship;
 	tOvni ovni;
 	tShot shots[5000];
 	tAsteroid asteroids[500];
-	clock_t t1 = clock(), t2 = clock();
 	int num_shots = 0;
 	int num_asteroids = 0;
 	int max_age = 100;
-	float diff, fps;
 	int quit = 0;
 	int game_over_age = 0;
 
@@ -985,18 +999,14 @@ int game() {
 	/********/
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
+
 		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
 
 			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter))
 				pause = !pause;
-			
-			/*** Comprueba el tiempo transcurrido desde el último frame ***/
-			t2 = clock();
-			diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC) * 1000;
-			if (!showNextFrame(diff, &fps))
+
+			if (checkNextFrame(1))
 				continue;
-			t1 = clock();
-			/**************************************************************/
 
 			//Pausamos el juego y mostramos el mensaje de game over si al jugador no le quedan vidas
 			if (player.lives < 1) {
@@ -1008,7 +1018,7 @@ int game() {
 				}
 				else {
 					if (player.points > player.bestScore) {
-
+						player_improvedScore = 1;
 						player.bestScore = player.points;
 						//Guardamos la fecha en formato UNIX
 						time_t rawtime;
@@ -1026,7 +1036,7 @@ int game() {
 
 			if (ovni.state == 0) {
 				printFigure(ovni.figura);
-				
+
 				if (!pause) {
 					moveOvni(&ovni);
 					ovni.figura.age++;
@@ -1082,7 +1092,7 @@ int game() {
 				moveShots(shots, &num_shots);
 				moveAsteroids(asteroids, num_asteroids);
 			}
-			
+
 			if (num_asteroids == 0) {
 				level++;
 				createAsteroids(asteroids, &num_asteroids);
@@ -1228,7 +1238,7 @@ void textEditor(Point2 pos, char str[50], int *length) {
 			str[*length - 1] = '\0';
 			*length -= 1;
 		}
-		else if (*length<13 && key !=9) {
+		else if (*length<13 && key != 9) {
 			str[*length] = key;
 			*length += 1;
 			str[*length] = '\0';
@@ -1399,11 +1409,11 @@ int getLastPlayerId() {
 	return reg.id;
 }
 
-void addPlayer() {
-	FILE *f;
+
+//Leer datos del contacto desde los textBox y guardarlos en el tPlayer struct
+void updatePlayerFromTextBoxes() {
 	int bufferSize = 50;
 
-	//Leer datos del contacto desde los textBox y guardarlos en el tPlayer struct
 	strcpy_s(player.name, bufferSize, textBoxes[0].txt);
 	strcpy_s(player.birthDate, bufferSize, textBoxes[1].txt);
 	strcpy_s(player.province, bufferSize, textBoxes[2].txt);
@@ -1411,6 +1421,11 @@ void addPlayer() {
 	strcpy_s(player.user, bufferSize, textBoxes[4].txt);
 	strcpy_s(player.pass, bufferSize, textBoxes[5].txt);
 	strcpy_s(player.email, bufferSize, textBoxes[6].txt);
+}
+
+
+void addPlayer() {
+	FILE *f;
 
 	player.credits = 10;
 	player.bestScore = 0;
@@ -1418,7 +1433,7 @@ void addPlayer() {
 
 	player.id = getLastPlayerId() + 1;
 
-	fopen_s(&f, "players.dat", "a");
+	fopen_s(&f, "players.dat", "ab");
 
 	fwrite(&player, sizeof(tPlayer), 1, f);
 
@@ -1438,12 +1453,12 @@ int checkLogin() {
 		rcode = 1;
 		do {
 			fread(&reg, sizeof(tPlayer), 1, f);
-			if (!feof(f)){
-				if (strncmp(textBoxes[0].txt, reg.user, 50) == 0 && strncmp(textBoxes[1].txt, reg.pass, 50) == 0) {
-					player = reg;
-					rcode = 0;
-				}
+			//if (!feof(f)){
+			if (strncmp(textBoxes[0].txt, reg.user, 50) == 0 && strncmp(textBoxes[1].txt, reg.pass, 50) == 0) {
+				player = reg;
+				rcode = 0;
 			}
+			//}
 		} while (!feof(f) && rcode == 1);
 		fclose(f);
 	}
@@ -1452,19 +1467,41 @@ int checkLogin() {
 	return !rcode;
 }
 
+int checkPlayerExists() {
+	FILE *f;
+	tPlayer contact;
+	int rcode;
+
+	rcode = fopen_s(&f, "players.dat", "rb");
+
+	if (rcode == 0) {
+		rcode = 1;
+		do {
+			fread(&contact, sizeof(tPlayer), 1, f);
+			if (!feof(f)){
+				if (strcmp(contact.user, player.user) == 0) {
+					rcode = 0;
+				}
+			}
+		} while (!feof(f) && rcode == 1);
+		fclose(f);
+	}
+
+	return (rcode == 0) ? 1 : 0;
+}
+
 /*********************** FIN DE FICHEROS ***************************/
 
 
 void lightBox(char txt[]) {
 	int i = 0;
-	int ttl = 1020;
-	int size = 400;
+	int ttl = 300;
+	int size = 300;
 	int y = 50;
 	int x = 200;
 	int fontAlpha, alpha = 0;
 	int padding = 50;
-	int quit = false;
-	
+
 
 	float pathPoints[] = { x, y,
 		x + size*1.5f, y,
@@ -1483,7 +1520,7 @@ void lightBox(char txt[]) {
 
 	/*Texto dentro del botón*/
 	ESAT::DrawSetFillColor(0, 0, 0, 255);
-	ESAT::DrawSetStrokeColor(0,0,0);
+	ESAT::DrawSetStrokeColor(0, 0, 0);
 	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
 	int font = (size / strlen(txt)) * 1.5;
 	ESAT::DrawSetTextSize(font);
@@ -1492,8 +1529,11 @@ void lightBox(char txt[]) {
 	ESAT::DrawText(x + padding, y + padding * 2, txt);
 
 
-	while (ESAT::WindowIsOpened() &&  i < ttl) {
-		
+	while (ESAT::WindowIsOpened() && i < ttl) {
+
+		if (checkNextFrame(0))
+			continue;
+
 		//La transparencia del lightbox cambia en cada frame
 		if (i < ttl / 2 && alpha < 255)
 			alpha++;
@@ -1503,7 +1543,7 @@ void lightBox(char txt[]) {
 		color[3] = alpha;
 		ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
 		ESAT::DrawSolidPath(pathPoints, 5, true);
-		
+
 		//Idem para el texto con colores inversos al fondo del lightbox
 		fontAlpha = abs(0 + alpha);
 		ESAT::DrawSetFillColor(fontAlpha, fontAlpha, fontAlpha, 255);
@@ -1516,7 +1556,7 @@ void lightBox(char txt[]) {
 	}
 }
 
-//Ordena puntuaciones de mayor a menor
+//Ordena puntuaciones de mayor a menor con el método burbuja
 void scoreBubbleSort()
 {
 	int c, d;
@@ -1540,7 +1580,6 @@ void scoreBubbleSort()
 int fetchHighScores() {
 	FILE *f;
 	tPlayer reg;
-	tHighScore record;
 	int rcode;
 	int i = 0;
 
@@ -1584,53 +1623,64 @@ void highScoresMenu() {
 
 	while (ESAT::WindowIsOpened() && !quit) {
 
-	if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
-		quit = 1;
+		if (checkNextFrame(0))
+			continue;
 
-	y = 100.0f;
-	x = 100.0f;
-
-	ESAT::DrawSetTextSize(40);
-
-	ESAT::DrawText(300.0f, 50.0f, "HIGHSCORES");
-
-	ESAT::DrawSetTextSize(20);
-
-	for (i = 0; i < num_highScores && i< 10; i++) {
-		x = 60.0f;
-
-		//Top
-		_snprintf_s(top_str, 30, "#%d", i+1);
-		ESAT::DrawText(x, y, top_str);
-		x += 100;
-		//Username
-		ESAT::DrawText(x, y, highScores[i].user);
-		x += 200;
-		//Date
-		localtime_s(&timeinfo, &highScores[i].date);
-		strftime(date_str, 80, "%d-%m-%Y", &timeinfo);
-		ESAT::DrawText(x, y, date_str);
-		x += 350;
-		//Score
-		_itoa_s(highScores[i].score, score_str, 10);
-		ESAT::DrawText(x, y, score_str);
-		y += 30;
-	}
-
-	drawButton(buttons[0]);
-
-	if (ESAT::MouseButtonDown(1)) {
-		switch (checkButtonsClick()) {
-		case 0:
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
 			quit = 1;
-			break;
-		default:
-			break;
-		}
-	}
 
-	ESAT::DrawClear(0, 0, 0);
-	ESAT::WindowFrame();
+		y = 100.0f;
+		x = 100.0f;
+
+		ESAT::DrawSetTextSize(40);
+
+		ESAT::DrawText(300.0f, 50.0f, "HIGHSCORES");
+
+		ESAT::DrawSetTextSize(20);
+
+		for (i = 0; i < num_highScores && i< 10; i++) {
+			x = 60.0f;
+
+			//Aumentamos los créditos del jugador actual, si éste acaba de superar su puntuación y aparece en el listado de los 10 mejores
+			if (player_improvedScore &&  strcmp(player.user, highScores[i].user) == 0) {
+				player_improvedScore = 0;
+				player.credits += 5;
+				updatePlayer();
+				lightBox("You made it into the TOP 10.\n\nYou are awarded with 5 extra credits!");
+			}
+
+			//Top
+			_snprintf_s(top_str, 30, "#%d", i + 1);
+			ESAT::DrawText(x, y, top_str);
+			x += 100;
+			//Username
+			ESAT::DrawText(x, y, highScores[i].user);
+			x += 200;
+			//Date
+			localtime_s(&timeinfo, &highScores[i].date);
+			strftime(date_str, 80, "%d-%m-%Y", &timeinfo);
+			ESAT::DrawText(x, y, date_str);
+			x += 350;
+			//Score
+			_itoa_s(highScores[i].score, score_str, 10);
+			ESAT::DrawText(x, y, score_str);
+			y += 30;
+		}
+
+		drawButton(buttons[0]);
+
+		if (ESAT::MouseButtonDown(1)) {
+			switch (checkButtonsClick()) {
+			case 0:
+				quit = 1;
+				break;
+			default:
+				break;
+			}
+		}
+
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
 	}
 }
 
@@ -1639,7 +1689,7 @@ void LoggedInMenu() {
 	int quit = 0;
 	char credits_str[30] = "Credits: ";
 	char user_str[30] = "Logged in as: ";
-	
+
 	ESAT::DrawSetFillColor(255, 255, 255);
 	ESAT::DrawSetStrokeColor(255, 255, 255);
 
@@ -1648,6 +1698,9 @@ void LoggedInMenu() {
 	_snprintf_s(user_str, 30, "Logged in as: %s", player.user);
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
+
+		if (checkNextFrame(0))
+			continue;
 
 		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
 			quit = 1;
@@ -1676,6 +1729,9 @@ void LoggedInMenu() {
 					game();
 					//Mostrar las máximas puntuaciones al finalizar la partida
 					highScoresMenu();
+					//Actualiza el texto de créditos disponibles
+					_snprintf_s(credits_str, 30, "Credits: %d", player.credits);
+					//Reinicia los botones del menú de jugador identificado
 					initLoggedInMenu();
 				}
 				break;
@@ -1718,6 +1774,9 @@ void logInMenu(int option) {
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
 
+		if (checkNextFrame(0))
+			continue;
+
 		printTextBoxes(active_box);
 
 		drawButton(buttons[0]);
@@ -1744,14 +1803,24 @@ void logInMenu(int option) {
 			switch (checkButtonsClick()) {
 			case 0:
 				if (option == 1) {
-					addPlayer();
-					lightBox("Player created");
+					updatePlayerFromTextBoxes();
+
+					if (!checkPlayerExists()) {
+						addPlayer();
+						lightBox("Player created");
+					}
+					else
+						lightBox("Player already exists");
 				}
 				else {
 					if (checkLogin()) {
 						initLoggedInMenu();
 						LoggedInMenu();
+						//Al salir del menú de jugador identificado, volvemos directamente al menú principal
+						quit = 1;
 					}
+					else
+						lightBox("User/Password does not exist");
 				}
 				break;
 			case 1:
@@ -1821,6 +1890,9 @@ int ESAT::main(int argc, char **argv) {
 	createAsteroids(asteroids, &num_asteroids);
 
 	while (ESAT::WindowIsOpened() && !exit) {
+
+		if (checkNextFrame(0))
+			continue;
 
 		if (start)
 			game();
