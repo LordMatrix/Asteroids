@@ -1,0 +1,15 @@
+- Mejorar el lightbox
+- Ajustar variables de ttl de disparos, número de disparos, cuando aparecen ovnis
+
+/* OPCIONALES */
+
+- Poner asteroides danzarines en el loggedInMenu
+- Botón de guardar al pausar el juego y botón de cargar en el loggedInMenu
+- Efectos de partículas para resaltar la destrucción de asteroides, nave y ovnis
+
+/* MEJORAS CODE-WISE */
+
+- Reemplazar arrays por listas
+- Refactoring de funciones redundantes y repetidas
+- Revisar las funciones geométricas
+- Unificar librerías, funciones y tipos duplicados en ambos proyectos
