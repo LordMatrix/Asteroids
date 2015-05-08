@@ -106,6 +106,9 @@ tPlayer player;
 tHighScore highScores[100];
 int num_highScores = 0;
 
+tAsteroid asteroids[500];
+int num_asteroids;
+
 //Comprobación de tiempo transcurrido entre frames
 clock_t t1 = clock(), t2 = clock();
 
@@ -814,25 +817,26 @@ void printShots(tShot shots[50], int num_shots) {
 	for (i = 0; i < num_shots; i++) {
 		ESAT::DrawLine(
 			shots[i].pos.x, shots[i].pos.y,
-			shots[i].pos.x + 1, shots[i].pos.y + 1
+			shots[i].pos.x + shots[i].accx, shots[i].pos.y + shots[i].accy
 			);
 	}
 }
 
 /* Crea todos los asteroides */
-void createAsteroids(tAsteroid asteroids[500], int *num_asteroids) {
+void createAsteroids() {
 	int i;
+	num_asteroids = 0;
 	Point2 origin;
 
-	for (i = 0; i < ((level * 2) + 2) && *num_asteroids <= 12; i++) {
+	for (i = 0; i < ((level * 2) + 2) && num_asteroids <= 12; i++) {
 		initPoint2(&origin, 0, 0);
-		asteroids[*num_asteroids] = createAsteroid(random(4) + 1, 1, origin);
-		*num_asteroids += 1;
+		asteroids[num_asteroids] = createAsteroid(random(4) + 1, 1, origin);
+		num_asteroids += 1;
 	}
 }
 
 /* Mueve los asteroides */
-void moveAsteroids(tAsteroid asteroids[50], int num_asteroids) {
+void moveAsteroids() {
 	int i, j;
 	Point2 newpos;
 
@@ -876,7 +880,7 @@ void moveOvni(tOvni *ovni) {
 
 
 /* Dibuja cada uno de los asteroides */
-void printAsteroids(tAsteroid asteroids[50], int num_asteroids) {
+void printAsteroids() {
 	int i;
 
 	for (i = 0; i < num_asteroids; i++) {
@@ -972,9 +976,7 @@ int game() {
 	tShip ship;
 	tOvni ovni;
 	tShot shots[5000];
-	tAsteroid asteroids[500];
 	int num_shots = 0;
-	int num_asteroids = 0;
 	int max_age = 100;
 	int quit = 0;
 	int game_over_age = 0;
@@ -984,7 +986,7 @@ int game() {
 	initPlayers();
 
 	ship = createShip(40, 50);
-	createAsteroids(asteroids, &num_asteroids);
+	createAsteroids();
 	pause = false;
 
 	/* Ovni */
@@ -1005,7 +1007,7 @@ int game() {
 			//Pausamos el juego y mostramos el mensaje de game over si al jugador no le quedan vidas
 			if (player.lives < 1) {
 				pause = true;
-				if (game_over_age < 800) {
+				if (game_over_age < 400) {
 					ESAT::DrawSetTextSize(50);
 					ESAT::DrawText(win_width / 3, win_height / 2, "GAME OVER");
 					game_over_age++;
@@ -1081,16 +1083,16 @@ int game() {
 			ship.figura.age++;
 
 			printShots(shots, num_shots);
-			printAsteroids(asteroids, num_asteroids);
+			printAsteroids();
 
 			if (!pause) {
 				moveShots(shots, &num_shots);
-				moveAsteroids(asteroids, num_asteroids);
+				moveAsteroids();
 			}
 
 			if (num_asteroids == 0) {
 				level++;
-				createAsteroids(asteroids, &num_asteroids);
+				createAsteroids();
 			}
 		}
 		else {
@@ -1490,7 +1492,7 @@ int checkPlayerExists() {
 
 void lightBox(char txt[]) {
 	int i = 0;
-	int ttl = 300;
+	int ttl = 200;
 	int size = 400;
 	int y = 50;
 	int x = 200;
@@ -1504,7 +1506,7 @@ void lightBox(char txt[]) {
 		x, y + size,
 		x, y
 	};
-
+	
 	/*Color rgb interior del polígono*/
 
 	int color[] = { 200, 200, 200, alpha };
@@ -1528,7 +1530,7 @@ void lightBox(char txt[]) {
 
 		if (checkNextFrame(0))
 			continue;
-
+		
 		//La transparencia del lightbox cambia en cada frame
 		if (i < ttl / 2 && alpha < 255)
 			alpha++;
@@ -1607,6 +1609,7 @@ int fetchHighScores() {
 void highScoresMenu() {
 	int i;
 	int quit = 0;
+	int currentPlayer;
 	float x, y;
 	char score_str[20];
 	char date_str[80];
@@ -1635,13 +1638,18 @@ void highScoresMenu() {
 
 		for (i = 0; i < num_highScores && i< 10; i++) {
 			x = 60.0f;
+			currentPlayer = (strcmp(player.user, highScores[i].user) == 0);
 
-			//Aumentamos los créditos del jugador actual, si éste acaba de superar su puntuación y aparece en el listado de los 10 mejores
-			if (player_improvedScore &&  strcmp(player.user, highScores[i].user) == 0) {
-				player_improvedScore = 0;
-				player.credits += 5;
-				updatePlayer();
-				lightBox("You made it into the TOP 10.\n\nYou are awarded with 5 extra credits!");
+			if (currentPlayer) {
+				//Aumentamos los créditos del jugador actual, si éste acaba de superar su puntuación y aparece en el listado de los 10 mejores
+				if (player_improvedScore) {
+					player_improvedScore = 0;
+					player.credits += 5;
+					updatePlayer();
+					lightBox("You are awarded 5 extra credits!");
+				}
+				ESAT::DrawSetStrokeColor(50, 250, 50);
+				ESAT::DrawSetFillColor(50, 250, 50);
 			}
 
 			//Top
@@ -1660,6 +1668,10 @@ void highScoresMenu() {
 			_itoa_s(highScores[i].score, score_str, 10);
 			ESAT::DrawText(x, y, score_str);
 			y += 30;
+
+			//Reiniciamos el color de la fuente al final de cada iteración
+			ESAT::DrawSetStrokeColor(255, 255, 255);
+			ESAT::DrawSetFillColor(255, 255, 255);
 		}
 
 		drawButton(buttons[0]);
@@ -1700,7 +1712,14 @@ void LoggedInMenu() {
 		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
 			quit = 1;
 
+		/* Mover asteroides por el fondo de la pantalla */
+		moveAsteroids();
+		printAsteroids();
+
 		/* Indica el jugador identificado y sus créditos disponibles */
+		
+		ESAT::DrawSetFillColor(255, 255, 255);
+		ESAT::DrawSetStrokeColor(255, 255, 255);
 		ESAT::DrawSetTextSize(20);
 		ESAT::DrawText(100.0f, 20.0f, user_str);
 		ESAT::DrawText(650.0f, 20.0f, credits_str);
@@ -1722,6 +1741,9 @@ void LoggedInMenu() {
 					//Guardar los cambios al jugador e iniciar el juego
 					updatePlayer();
 					game();
+					//Reiniciamos el nivel y los asteroides al salir del juego de fondo de los menús
+					level = 1;
+					createAsteroids();
 					//Mostrar las máximas puntuaciones al finalizar la partida
 					highScoresMenu();
 					//Actualiza el texto de créditos disponibles
@@ -1729,6 +1751,8 @@ void LoggedInMenu() {
 					//Reinicia los botones del menú de jugador identificado
 					initLoggedInMenu();
 				}
+				else
+					lightBox("Not Enough Credits");
 				break;
 			case 1:
 				highScoresMenu();
@@ -1773,6 +1797,9 @@ void logInMenu(int option) {
 			continue;
 
 		printTextBoxes(active_box);
+
+		moveAsteroids();
+		printAsteroids();
 
 		drawButton(buttons[0]);
 		drawButton(buttons[1]);
@@ -1873,32 +1900,24 @@ void mainMenu() {
 
 int ESAT::main(int argc, char **argv) {
 	int exit = 0, start = 0;
-	tAsteroid asteroids[500];
-	int num_asteroids = 0;
-
-
+	
 	ESAT::WindowInit(win_width, win_height);
 
 	initText();
-
 	initMainMenu();
-	createAsteroids(asteroids, &num_asteroids);
+	createAsteroids();
 
 	while (ESAT::WindowIsOpened() && !exit) {
 
 		if (checkNextFrame(0))
 			continue;
 
-		if (start)
-			game();
-		else {
-			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
-				exit = 1;
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape))
+			exit = 1;
 
-			mainMenu();
-			moveAsteroids(asteroids, num_asteroids);
-			printAsteroids(asteroids, num_asteroids);
-		}
+		mainMenu();
+		moveAsteroids();
+		printAsteroids();
 
 		ESAT::DrawClear(0, 0, 0);
 		ESAT::WindowFrame();
