@@ -22,6 +22,8 @@ ESAT 2015
 #include "lib/funciones.h"
 #include "lib/listaDoble.h"
 
+#define PARTICLES_PER_BLAST 8
+
 typedef struct {
 	int num_vertices;
 	Point2 vertices[30];
@@ -105,6 +107,11 @@ typedef struct {
 	int num_shots;
 } tSavedGame;
 
+typedef struct {
+	Point2 center;
+	int age;
+} tBlast;
+
 int win_width = 1000, win_height = 600;
 int margin = 25;
 
@@ -126,6 +133,9 @@ int num_shots = 0;
 
 //Comprobación de tiempo transcurrido entre frames
 clock_t t1 = clock(), t2 = clock();
+
+tBlast blasts[20];
+int num_blasts = 0;
 
 typedef struct {
 	Point2 pos;
@@ -654,6 +664,11 @@ void removeShot(tShot shots[50], int i, int *num_shots) {
 	*num_shots -= 1;
 }
 
+void removeBlast(int i) {
+	blasts[i] = blasts[num_blasts - 1];
+	num_blasts -= 1;
+}
+
 /* Desplaza los disparos y los hace desaparecer si han recorrido la distancia máxima */
 void moveShots(tShot shots[50], int *num_shots) {
 	int i;
@@ -667,6 +682,28 @@ void moveShots(tShot shots[50], int *num_shots) {
 		checkScreenBorders(shots[i].pos, &shots[i].pos);
 		if (shots[i].age > max_age) {
 			removeShot(shots, i, &(*num_shots));
+		}
+	}
+}
+
+/* Desplaza las partículas y las hace desaparecer si han recorrido la distancia máxima */
+void moveBlasts() {
+	int i, j;
+	int max_age = 100;
+	Point2 p;
+
+	for (j = 0; j < num_blasts; j++) {
+		for (i = 0; i < PARTICLES_PER_BLAST; i++) {
+			p.x = blasts[j].center.x + (blasts[j].age / 2) * cos(rads((360 / PARTICLES_PER_BLAST)*i));
+			p.y = blasts[j].center.y + (blasts[j].age / 2) * sin(rads((360 / PARTICLES_PER_BLAST)*i));
+
+			ESAT::DrawLine(p.x, p.y, p.x + 1, p.y + 1);
+		}
+		
+		blasts[j].age++;
+
+		if (blasts[j].age > max_age) {
+			removeBlast(j);
 		}
 	}
 }
@@ -816,10 +853,19 @@ tOvni createOvni(int type) {
 	return o;
 }
 
+/* Crea una nueva explosión*/
+void createBlast(Point2 p) {
+	blasts[num_blasts].center = p;
+	blasts[num_blasts].age = 0;
+	num_blasts++;
+}
+
 /* Divide o elimina un asteroide */
 void breakAsteroid(tAsteroid asteroids[50], int i, int *num_asteroids, int scores) {
 	tAsteroid a, b;
 
+	createBlast(asteroids[i].figura.center);
+	
 	if (scores) {
 		player.points += asteroids[i].points;
 	}
@@ -866,6 +912,8 @@ void destroyShip(tShip *ship) {
 	int i, j;
 	Vec2 dir;
 
+	createBlast((*ship).figura.center);
+
 	initPoint2(&p, win_width / 2, win_height / 2);
 
 	(*ship).state = 2;
@@ -884,6 +932,8 @@ void destroyShip(tShip *ship) {
 
 void destroyOvni(tOvni *ovni) {
 	Point2 p;
+
+	createBlast((*ovni).figura.center);
 
 	initPoint2(&p, win_width / 2, win_height / 2);
 
@@ -1146,6 +1196,70 @@ int checkNextFrame(int show_fps) {
 	return 1;
 }
 
+
+void lightBox(char txt[]) {
+	int i = 0;
+	int ttl = 200;
+	int size = 400;
+	int y = 50;
+	int x = 200;
+	int fontAlpha, alpha = 0;
+	int padding = 50;
+
+
+	float pathPoints[] = { x, y,
+		x + size*1.5f, y,
+		x + size*1.5f, y + size,
+		x, y + size,
+		x, y
+	};
+
+	/*Color rgb interior del polígono*/
+
+	int color[] = { 200, 200, 200, alpha };
+	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+
+	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
+	ESAT::DrawSolidPath(pathPoints, 5, true);
+
+	/*Texto dentro del botón*/
+	ESAT::DrawSetFillColor(0, 0, 0, 255);
+	ESAT::DrawSetStrokeColor(0, 0, 0);
+	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
+	int font = (size / strlen(txt)) * 1.5;
+	ESAT::DrawSetTextSize(font);
+
+	//const char *txt2 = txt.c_str();
+	ESAT::DrawText(x + padding, y + padding * 2, txt);
+
+
+	while (ESAT::WindowIsOpened() && i < ttl) {
+
+		if (checkNextFrame(0))
+			continue;
+
+		//La transparencia del lightbox cambia en cada frame
+		if (i < ttl / 2 && alpha < 255)
+			alpha++;
+		else if (alpha > 0)
+			alpha--;
+
+		color[3] = alpha;
+		ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+		ESAT::DrawSolidPath(pathPoints, 5, true);
+
+		//Idem para el texto con colores inversos al fondo del lightbox
+		fontAlpha = abs(0 + alpha);
+		ESAT::DrawSetFillColor(fontAlpha, fontAlpha, fontAlpha, 255);
+		ESAT::DrawSetStrokeColor(fontAlpha, fontAlpha, fontAlpha, 255);
+		ESAT::DrawText(x + padding, y + padding * 2, txt);
+		i++;
+
+		ESAT::DrawClear(0, 0, 0);
+		ESAT::WindowFrame();
+	}
+}
+
 //Guarda información sobre el jugador actual a disco
 void updatePlayer() {
 	FILE *f, *tmp;
@@ -1217,6 +1331,8 @@ void saveGame() {
 
 	remove("saveGames.dat");
 	rename("saveGames.tmp", "saveGames.dat");
+
+	lightBox("Game saved");
 }
 
 //Carga de disco una partida perteneciente al jugador actual.
@@ -1382,6 +1498,7 @@ int game() {
 		if (!pause) {
 			moveShots(shots, &num_shots);
 			moveAsteroids();
+			moveBlasts();
 		}
 
 		if (num_asteroids == 0) {
@@ -1624,70 +1741,6 @@ int checkPlayerExists() {
 
 /*********************** FIN DE FICHEROS ***************************/
 
-
-void lightBox(char txt[]) {
-	int i = 0;
-	int ttl = 200;
-	int size = 400;
-	int y = 50;
-	int x = 200;
-	int fontAlpha, alpha = 0;
-	int padding = 50;
-
-
-	float pathPoints[] = { x, y,
-		x + size*1.5f, y,
-		x + size*1.5f, y + size,
-		x, y + size,
-		x, y
-	};
-	
-	/*Color rgb interior del polígono*/
-
-	int color[] = { 200, 200, 200, alpha };
-	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
-
-	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
-	ESAT::DrawSolidPath(pathPoints, 5, true);
-
-	/*Texto dentro del botón*/
-	ESAT::DrawSetFillColor(0, 0, 0, 255);
-	ESAT::DrawSetStrokeColor(0, 0, 0);
-	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
-	int font = (size / strlen(txt)) * 1.5;
-	ESAT::DrawSetTextSize(font);
-
-	//const char *txt2 = txt.c_str();
-	ESAT::DrawText(x + padding, y + padding * 2, txt);
-
-
-	while (ESAT::WindowIsOpened() && i < ttl) {
-
-		if (checkNextFrame(0))
-			continue;
-		
-		//La transparencia del lightbox cambia en cada frame
-		if (i < ttl / 2 && alpha < 255)
-			alpha++;
-		else if (alpha > 0)
-			alpha--;
-
-		color[3] = alpha;
-		ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
-		ESAT::DrawSolidPath(pathPoints, 5, true);
-
-		//Idem para el texto con colores inversos al fondo del lightbox
-		fontAlpha = abs(0 + alpha);
-		ESAT::DrawSetFillColor(fontAlpha, fontAlpha, fontAlpha, 255);
-		ESAT::DrawSetStrokeColor(fontAlpha, fontAlpha, fontAlpha, 255);
-		ESAT::DrawText(x + padding, y + padding * 2, txt);
-		i++;
-
-		ESAT::DrawClear(0, 0, 0);
-		ESAT::WindowFrame();
-	}
-}
-
 //Ordena puntuaciones de mayor a menor con el método burbuja
 void scoreBubbleSort()
 {
@@ -1906,7 +1959,7 @@ void LoggedInMenu() {
 					initLoggedInMenu();
 				}
 				else
-					lightBox("No hay partida guardada.");
+					lightBox("There is no saved game");
 				break;
 			case 2:
 				highScoresMenu();

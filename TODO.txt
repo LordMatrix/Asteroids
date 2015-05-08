@@ -1,10 +1,5 @@
 - Mejorar el lightbox
 
-/* OPCIONALES */
-
-- Poner asteroides danzarines en el loggedInMenu
-- Botón de guardar al pausar el juego y botón de cargar en el loggedInMenu
-- Efectos de partículas para resaltar la destrucción de asteroides, nave y ovnis
 
 /* MEJORAS CODE-WISE */
 
