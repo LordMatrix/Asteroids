@@ -95,6 +95,16 @@ typedef struct {
 	int score;
 } tHighScore;
 
+typedef struct {
+	tPlayer player;
+	tOvni ovni;
+	tAsteroid asteroids[100];
+	int num_asteroids;
+	int level;
+	tShot shots[50];
+	int num_shots;
+} tSavedGame;
+
 int win_width = 1000, win_height = 600;
 int margin = 25;
 
@@ -106,11 +116,202 @@ tPlayer player;
 tHighScore highScores[100];
 int num_highScores = 0;
 
-tAsteroid asteroids[500];
+tAsteroid asteroids[100];
 int num_asteroids;
+
+tOvni ovni;
+
+tShot shots[5000];
+int num_shots = 0;
 
 //Comprobación de tiempo transcurrido entre frames
 clock_t t1 = clock(), t2 = clock();
+
+typedef struct {
+	Point2 pos;
+	int size;
+	std::string txt;
+} tButton;
+
+typedef struct {
+	Point2 pos;
+	int size;
+	char txt[50];
+	int txt_lenght;
+	std::string title;
+} tTextBox;
+
+tButton buttons[10];
+int num_buttons = 0;
+
+tTextBox textBoxes[10];
+int num_textBoxes = 0;
+
+
+/* Crear botones del menú principal */
+void initMainMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 350, 230);
+	b.txt = "LOG IN";
+	b.size = 100;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 380);
+	c.txt = "REGISTER";
+	c.size = 100;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+/* Crear botones del menú login/register */
+void initRegisterMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 150, 500);
+	b.txt = "SAVE";
+	b.size = 70;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 600, 500);
+	c.txt = "CANCEL";
+	c.size = 70;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+
+/* Crear botones del menú login/register */
+void initLogInMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 150, 500);
+	b.txt = "LOG IN";
+	b.size = 70;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 600, 500);
+	c.txt = "CANCEL";
+	c.size = 70;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+
+/* Crear botones del menú principal de usuario identificado */
+void initLoggedInMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 200, 250);
+	b.txt = "NEW GAME";
+	b.size = 90;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&b.pos, 500, 250);
+	b.txt = "LOAD GAME";
+	b.size = 90;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 200, 400);
+	c.txt = "HIGHSCORES";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+
+	initPoint2(&c.pos, 500, 400);
+	c.txt = "LOG OUT";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+void initHighScoresMenu() {
+	num_buttons = 0;
+
+	tButton b;
+	initPoint2(&b.pos, 370, 500);
+	b.txt = "RETURN";
+	b.size = 80;
+	buttons[num_buttons] = b;
+	num_buttons++;
+}
+
+void initPauseMenu() {
+	num_buttons = 0;
+
+	tButton b, c;
+	initPoint2(&b.pos, 350, 230);
+	b.txt = "CONTINUE";
+	b.size = 90;
+	buttons[num_buttons] = b;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 350);
+	c.txt = "SAVE";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+
+	initPoint2(&c.pos, 350, 470);
+	c.txt = "QUIT";
+	c.size = 90;
+	buttons[num_buttons] = c;
+	num_buttons++;
+}
+
+/* Dibuja un cuadrado con su esquina superior izquierda en las coordenadas indicadas */
+void drawButton(tButton button) {
+	int padding = 30;
+	int color[] = { 255, 255, 255, 255 };
+
+	float pathPoints[] = { button.pos.x, button.pos.y,
+		button.pos.x + button.size*2.5f, button.pos.y,
+		button.pos.x + button.size*2.5f, button.pos.y + button.size,
+		button.pos.x, button.pos.y + button.size,
+		button.pos.x, button.pos.y
+	};
+
+	/*Color rgb interior del polígono*/
+	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
+
+	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
+	ESAT::DrawSolidPath(pathPoints, 5, true);
+
+	/*Texto dentro del botón*/
+	ESAT::DrawSetFillColor(0, 0, 0, 255);
+	ESAT::DrawSetStrokeColor(0, 0, 0);
+	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
+	int font = (button.size / button.txt.length()) * 2.5;
+	ESAT::DrawSetTextSize(font);
+
+	const char *txt2 = button.txt.c_str();
+	ESAT::DrawText(button.pos.x + padding, button.pos.y + padding * 2, txt2);
+}
+
+//Comprueba y devuelve el número de botón pulsado
+int checkButtonsClick() {
+	int i, click = 0;
+
+	for (i = 0; i < num_buttons && !click; i++) {
+		//Comprobamos que el click sea en el interior del botón
+		if (ESAT::MousePositionX() >(int)buttons[i].pos.x
+			&& ESAT::MousePositionX() < (int)buttons[i].pos.x + 2 * buttons[i].size
+			&& ESAT::MousePositionY() > (int)buttons[i].pos.y
+			&& ESAT::MousePositionY() < (int)buttons[i].pos.y + buttons[i].size) {
+			click = 1;
+		}
+	}
+	return (click) ? i - 1 : -1;
+}
 
 void initPlayers() {
 	player.threshold = 50;
@@ -970,134 +1171,224 @@ void updatePlayer() {
 }
 
 
+void saveGame() {
+	tSavedGame game, temp;
+	FILE *f, *tmp;
+	int rcode = 0;
+	
+	std::memcpy(game.asteroids, asteroids, sizeof(tAsteroid)*100);
+	std::memcpy(game.shots, shots, sizeof(tShot) * 50);	
+	game.num_asteroids = num_asteroids;
+	game.num_shots = num_shots;
+
+	game.player = player;
+	game.ovni = ovni;
+	game.level = level;
+
+	// Guardar juego en disco
+	fopen_s(&tmp, "saveGames.tmp", "wb");
+	rcode = fopen_s(&f, "saveGames.dat", "rb");
+
+	//Si existe el fichero de partidas guardadas, se busca al jugador en él
+	if (rcode != 2) {
+		do {
+			fread(&temp, sizeof(tSavedGame), 1, f);
+			if (!feof(f))
+				if (!(temp.player.id == player.id))
+					fwrite(&temp, sizeof(tSavedGame), 1, tmp);
+				else {
+					fwrite(&game, sizeof(tSavedGame), 1, tmp);
+					//Marcamos que la partida existe y se ha actualizado
+					rcode = 1;
+				}
+		} while (!feof(f));
+	}
+
+	//Si el jugador no tiene una partida guardada, se añade
+	if (!rcode) {
+		fwrite(&game, sizeof(tSavedGame), 1, tmp);
+	}
+
+	//Cerramos este fichero en caso de que exista
+	if (rcode != 2)
+		fclose(f);
+
+	fclose(tmp);
+
+	remove("saveGames.dat");
+	rename("saveGames.tmp", "saveGames.dat");
+}
+
+//Carga de disco una partida perteneciente al jugador actual.
+//Devuelve 1 en caso de éxito, y 0 si no se ha encontrado partida guardada.
+int loadGame() {
+	tSavedGame game, temp;
+	FILE *f, *tmp;
+	int rcode = 0;
+
+	rcode = fopen_s(&f, "saveGames.dat", "rb");
+
+	//Si existe el fichero de partidas guardadas, se busca al jugador en él
+	if (rcode != 2) {
+		do {
+			fread(&temp, sizeof(tSavedGame), 1, f);
+			if (!feof(f))
+				if (temp.player.id == player.id) {
+					game = temp;
+					rcode = 1;
+				}
+		} while (!feof(f) && !rcode);
+
+		fclose(f);
+
+		if (rcode == 1) {
+			std::memcpy(asteroids, game.asteroids, sizeof(tAsteroid) * 100);
+			std::memcpy(shots, game.shots, sizeof(tShot) * 50);
+			num_asteroids = game.num_asteroids;
+			num_shots = game.num_shots;
+
+			player = game.player;
+			ovni = game.ovni;
+			level = game.level;
+		}
+	}
+
+	return (rcode == 1);
+}
 
 
 int game() {
-	tShip ship;
-	tOvni ovni;
-	tShot shots[5000];
-	int num_shots = 0;
 	int max_age = 100;
 	int quit = 0;
 	int game_over_age = 0;
 
-	srand(time(NULL));
-
-	initPlayers();
-
-	ship = createShip(40, 50);
-	createAsteroids();
 	pause = false;
-
-	/* Ovni */
-	ovni = createOvni(1);
-	ovni.state = 2;
-	/********/
 
 	while (ESAT::WindowIsOpened() && quit == 0) {
 
-		if (!ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
+		if (checkNextFrame(1))
+			continue;
 
-			if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter))
-				pause = !pause;
-
-			if (checkNextFrame(1))
-				continue;
-
-			//Pausamos el juego y mostramos el mensaje de game over si al jugador no le quedan vidas
-			if (player.lives < 1) {
-				pause = true;
-				if (game_over_age < 400) {
-					ESAT::DrawSetTextSize(50);
-					ESAT::DrawText(win_width / 3, win_height / 2, "GAME OVER");
-					game_over_age++;
-				}
-				else {
-					if (player.points > player.bestScore) {
-						player_improvedScore = 1;
-						player.bestScore = player.points;
-						//Guardamos la fecha en formato UNIX
-						time_t rawtime;
-						time(&rawtime);
-						player.date = rawtime;
-						//Actualizamos datos del jugador
-						updatePlayer();
-					}
+		if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Enter) || ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)) {
+			initPauseMenu();
+			pause = !pause;
+		}
+			
+		if (pause && player.lives>0) {
+			ESAT::DrawSetTextSize(70);
+			ESAT::DrawText(300.0f, 160.0f, "PAUSED");
+			drawButton(buttons[0]);
+			drawButton(buttons[1]);
+			drawButton(buttons[2]);
+				
+			if (ESAT::MouseButtonDown(1)) {
+				switch (checkButtonsClick()) {
+				case 0:
+					pause = !pause;
+					break;
+				case 1:
+					saveGame();
+					break;
+				case 2:
 					quit = 1;
+					break;
+				default:
+					break;
 				}
 			}
+		}
 
-			ESAT::DrawSetTextSize(30);
-			printInfo();
-
-			if (ovni.state == 0) {
-				printFigure(ovni.figura);
-
-				if (!pause) {
-					moveOvni(&ovni);
-					ovni.figura.age++;
-					//El ovni dispara cada X ciclos
-					if (ovni.figura.age % 200 == 0)
-						shoot(&ship, shots, &num_shots, &ovni);
-				}
+		//Pausamos el juego y mostramos el mensaje de game over si al jugador no le quedan vidas
+		if (player.lives < 1) {
+			pause = true;
+			if (game_over_age < 400) {
+				ESAT::DrawSetTextSize(50);
+				ESAT::DrawText(win_width / 3, win_height / 2, "GAME OVER");
+				game_over_age++;
 			}
-			else if (!pause && ship.figura.age > 0 && ship.figura.age % 500 == 0 && num_asteroids<6)
-				ovni = createOvni(random(2));
-
-			switch (ship.state) {
-			case 0:
-				printFigure(ship.figura);
-
-				if (!pause) {
-					moveShip(&ship);
-
-					if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space) && num_shots<5) {
-						shoot(&ship, shots, &num_shots);
-					}
-					checkHits(asteroids, &num_asteroids, shots, &num_shots, &ship, &ovni, ovni.state == 0);
-					ship.figura.age++;
+			else {
+				if (player.points > player.bestScore) {
+					player_improvedScore = 1;
+					player.bestScore = player.points;
+					//Guardamos la fecha en formato UNIX
+					time_t rawtime;
+					time(&rawtime);
+					player.date = rawtime;
+					//Actualizamos datos del jugador
+					updatePlayer();
 				}
-				break;
-			case 1:
-				if (!pause) {
-					if (ship.figura.age % 3 == 0)
-						printFigure(ship.figura);
-
-					moveShip(&ship);
-
-					if (ship.figura.age > max_age) {
-						ship.figura.age = 0;
-						ship.state = 0;
-					}
-				}
-				break;
-			case 2:
-				printShipDestruction(&ship);
-				if (ship.figura.age > max_age) {
-					ship.figura.age = 0;
-					ship.state = 1;
-				}
-				break;
+				quit = 1;
 			}
+		}
 
-			ship.figura.age++;
+		ESAT::DrawSetTextSize(30);
+		printInfo();
 
-			printShots(shots, num_shots);
-			printAsteroids();
+		if (ovni.state == 0) {
+			printFigure(ovni.figura);
 
 			if (!pause) {
-				moveShots(shots, &num_shots);
-				moveAsteroids();
+				moveOvni(&ovni);
+				ovni.figura.age++;
+				//El ovni dispara cada X ciclos
+				if (ovni.figura.age % 200 == 0)
+					shoot(&player.ship, shots, &num_shots, &ovni);
 			}
+		}
+		else if (!pause && player.ship.figura.age > 0 && player.ship.figura.age % 500 == 0 && num_asteroids<6)
+			ovni = createOvni(random(2));
 
-			if (num_asteroids == 0) {
-				level++;
-				createAsteroids();
+		switch (player.ship.state) {
+		case 0:
+			printFigure(player.ship.figura);
+
+			if (!pause) {
+				moveShip(&player.ship);
+
+				if (ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Space) && num_shots<5) {
+					shoot(&player.ship, shots, &num_shots);
+				}
+				checkHits(asteroids, &num_asteroids, shots, &num_shots, &player.ship, &ovni, ovni.state == 0);
+				player.ship.figura.age++;
 			}
+			break;
+		case 1:
+			if (!pause) {
+				if (player.ship.figura.age % 3 == 0)
+					printFigure(player.ship.figura);
+
+				moveShip(&player.ship);
+
+				if (player.ship.figura.age > max_age) {
+					player.ship.figura.age = 0;
+					player.ship.state = 0;
+				}
+			}
+			break;
+		case 2:
+			printShipDestruction(&player.ship);
+			if (player.ship.figura.age > max_age) {
+				player.ship.figura.age = 0;
+				player.ship.state = 1;
+			}
+			break;
 		}
-		else {
-			quit = 1;
+
+		player.ship.figura.age++;
+
+		printShots(shots, num_shots);
+		printAsteroids();
+
+		if (!pause) {
+			moveShots(shots, &num_shots);
+			moveAsteroids();
 		}
+
+		if (num_asteroids == 0) {
+			level++;
+			createAsteroids();
+		}
+		
 
 		ESAT::DrawClear(0, 0, 0);
 		ESAT::WindowFrame();
@@ -1105,75 +1396,10 @@ int game() {
 
 	return 0;
 }
+
 /***********************************************************/
 /************************* END GAME ************************/
 /***********************************************************/
-
-typedef struct {
-	Point2 pos;
-	int size;
-	std::string txt;
-} tButton;
-
-typedef struct {
-	Point2 pos;
-	int size;
-	char txt[50];
-	int txt_lenght;
-	std::string title;
-} tTextBox;
-
-tButton buttons[10];
-int num_buttons = 0;
-
-tTextBox textBoxes[10];
-int num_textBoxes = 0;
-
-
-/* Dibuja un cuadrado con su esquina superior izquierda en las coordenadas indicadas */
-void drawButton(tButton button) {
-	int padding = 30;
-	int color[] = { 255, 255, 255, 255 };
-
-	float pathPoints[] = { button.pos.x, button.pos.y,
-		button.pos.x + button.size*2.5f, button.pos.y,
-		button.pos.x + button.size*2.5f, button.pos.y + button.size,
-		button.pos.x, button.pos.y + button.size,
-		button.pos.x, button.pos.y
-	};
-
-	/*Color rgb interior del polígono*/
-	ESAT::DrawSetFillColor(color[0], color[1], color[2], color[3]);
-
-	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
-	ESAT::DrawSolidPath(pathPoints, 5, true);
-
-	/*Texto dentro del botón*/
-	ESAT::DrawSetFillColor(0, 0, 0, 255);
-	ESAT::DrawSetStrokeColor(0, 0, 0);
-	/*Ajusta el tamaño de la fuente según la longitud del texto y el ancho del botón */
-	int font = (button.size / button.txt.length()) * 2.5;
-	ESAT::DrawSetTextSize(font);
-
-	const char *txt2 = button.txt.c_str();
-	ESAT::DrawText(button.pos.x + padding, button.pos.y + padding * 2, txt2);
-}
-
-//Comprueba y devuelve el número de botón pulsado
-int checkButtonsClick() {
-	int i, click = 0;
-
-	for (i = 0; i < num_buttons && !click; i++) {
-		//Comprobamos que el click sea en el interior del botón
-		if (ESAT::MousePositionX() >(int)buttons[i].pos.x
-			&& ESAT::MousePositionX() < (int)buttons[i].pos.x + 2 * buttons[i].size
-			&& ESAT::MousePositionY() > (int)buttons[i].pos.y
-			&& ESAT::MousePositionY() < (int)buttons[i].pos.y + buttons[i].size) {
-			click = 1;
-		}
-	}
-	return (click) ? i - 1 : -1;
-}
 
 
 //Escucha los clicks del ratón en el menú de login/registro
@@ -1289,97 +1515,6 @@ void createTextBoxes(int option) {
 		textBoxes[i].txt_lenght = 0;
 		posy += 55;
 	}
-}
-
-/* Crear botones del menú principal */
-void initMainMenu() {
-	num_buttons = 0;
-
-	tButton b, c;
-	initPoint2(&b.pos, 350, 230);
-	b.txt = "LOG IN";
-	b.size = 100;
-	buttons[num_buttons] = b;
-	num_buttons++;
-
-	initPoint2(&c.pos, 350, 380);
-	c.txt = "REGISTER";
-	c.size = 100;
-	buttons[num_buttons] = c;
-	num_buttons++;
-}
-
-/* Crear botones del menú login/register */
-void initRegisterMenu() {
-	num_buttons = 0;
-
-	tButton b, c;
-	initPoint2(&b.pos, 150, 500);
-	b.txt = "SAVE";
-	b.size = 70;
-	buttons[num_buttons] = b;
-	num_buttons++;
-
-	initPoint2(&c.pos, 600, 500);
-	c.txt = "CANCEL";
-	c.size = 70;
-	buttons[num_buttons] = c;
-	num_buttons++;
-}
-
-
-/* Crear botones del menú login/register */
-void initLogInMenu() {
-	num_buttons = 0;
-
-	tButton b, c;
-	initPoint2(&b.pos, 150, 500);
-	b.txt = "LOG IN";
-	b.size = 70;
-	buttons[num_buttons] = b;
-	num_buttons++;
-
-	initPoint2(&c.pos, 600, 500);
-	c.txt = "CANCEL";
-	c.size = 70;
-	buttons[num_buttons] = c;
-	num_buttons++;
-}
-
-
-/* Crear botones del menú principal de usuario identificado */
-void initLoggedInMenu() {
-	num_buttons = 0;
-
-	tButton b, c;
-	initPoint2(&b.pos, 350, 230);
-	b.txt = "START GAME";
-	b.size = 90;
-	buttons[num_buttons] = b;
-	num_buttons++;
-
-	initPoint2(&c.pos, 350, 350);
-	c.txt = "HIGHSCORES";
-	c.size = 90;
-	buttons[num_buttons] = c;
-	num_buttons++;
-
-	initPoint2(&c.pos, 350, 470);
-	c.txt = "LOG OUT";
-	c.size = 90;
-	buttons[num_buttons] = c;
-	num_buttons++;
-}
-
-void initHighScoresMenu() {
-	num_buttons = 0;
-
-	tButton b;
-	initPoint2(&b.pos, 370, 500);
-	b.txt = "RETURN";
-	b.size = 80;
-	buttons[num_buttons] = b;
-	num_buttons++;
 }
 
 /*********************** FICHEROS ***************************/
@@ -1730,6 +1865,7 @@ void LoggedInMenu() {
 		drawButton(buttons[0]);
 		drawButton(buttons[1]);
 		drawButton(buttons[2]);
+		drawButton(buttons[3]);
 
 		if (ESAT::MouseButtonDown(1)) {
 			switch (checkButtonsClick()) {
@@ -1740,6 +1876,13 @@ void LoggedInMenu() {
 					_snprintf_s(credits_str, 30, "Credits: %d", player.credits);
 					//Guardar los cambios al jugador e iniciar el juego
 					updatePlayer();
+					//Iniciar variables de nueva partida
+					initPlayers();
+					player.ship = createShip(40, 50);
+					createAsteroids();
+					ovni = createOvni(1);
+					ovni.state = 2;
+					/********/
 					game();
 					//Reiniciamos el nivel y los asteroides al salir del juego de fondo de los menús
 					level = 1;
@@ -1755,10 +1898,21 @@ void LoggedInMenu() {
 					lightBox("Not Enough Credits");
 				break;
 			case 1:
+				if (loadGame()) {
+					game();
+					createAsteroids();
+					initHighScoresMenu();
+					highScoresMenu();
+					initLoggedInMenu();
+				}
+				else
+					lightBox("No hay partida guardada.");
+				break;
+			case 2:
 				highScoresMenu();
 				initLoggedInMenu();
 				break;
-			case 2:
+			case 3:
 				quit = 1;
 				break;
 			default:
@@ -1901,6 +2055,8 @@ void mainMenu() {
 int ESAT::main(int argc, char **argv) {
 	int exit = 0, start = 0;
 	
+	srand(time(NULL));
+
 	ESAT::WindowInit(win_width, win_height);
 
 	initText();
