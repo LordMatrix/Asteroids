@@ -7,10 +7,10 @@ Implementado con vectores
 
 */
 
-#include <ESAT/window.h>
-#include <ESAT/draw.h>
-#include <ESAT/sprite.h>
-#include <ESAT/input.h>
+#include <MOMOS/window.h>
+#include <MOMOS/draw.h>
+#include <MOMOS/sprite.h>
+#include <MOMOS/input.h>
 
 #include <Windows.h>
 
@@ -165,8 +165,8 @@ void DrawVec2(Vec2 v, Point2 p) {
 	a = p;
 	initPoint2(&b, p.x + v.x, p.y + v.y);
 
-	ESAT::DrawSetStrokeColor(255, 255, 255, 255);
-	ESAT::DrawLine(a.x, a.y, b.x, b.y);
+	MOMOS::DrawSetStrokeColor(255, 255, 255, 255);
+	MOMOS::DrawLine(a.x, a.y, b.x, b.y);
 
 	perpendicularVec2(v, &pp);
 
@@ -191,10 +191,10 @@ void printSquare(Point2 p, Vec2 vectors[4], float color[]) {
 	pathPoints[i + 1] = p.y + vectors[0].y;
 
 	/*Color rgb interior del polígono*/
-	ESAT::DrawSetStrokeColor(color[0], color[1], color[2], color[3]);
+	MOMOS::DrawSetStrokeColor(color[0], color[1], color[2], color[3]);
 
 	/*Pinta la misma figura rellena. El último parámetro determina si se muestra el borde*/
-	ESAT::DrawPath(pathPoints, 5);
+	MOMOS::DrawPath(pathPoints, 5);
 }
 
 
@@ -219,7 +219,7 @@ void afineTransformFromPoint2(Point2 current, Mat2 m, Point2 origin, Point2 *res
 
 
 void drawLine(Point2 p1, Point2 p2) {
-	ESAT::DrawLine(p1.x, p1.y, p2.x, p2.y);
+	MOMOS::DrawLine(p1.x, p1.y, p2.x, p2.y);
 }
 
 void MultMat3(Mat3 m1, Mat3 m2, Mat3 *result) {}
@@ -251,11 +251,11 @@ initVec2(&vectors[2], length, -length);
 initVec2(&vectors[3], -length, -length);
 
 
-ESAT::WindowInit(win_width, win_height);
+MOMOS::WindowInit(win_width, win_height);
 
-while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (MOMOS::WindowIsOpened() && !MOMOS::IsSpecialKeyDown(MOMOS::kSpecialKey_Escape)){
 
-ESAT::DrawClear(150, 150, 150);
+MOMOS::DrawClear(150, 150, 150);
 
 //Asignamos valores a la matriz de rotación
 initMat2(&rotation, cos(rads(angle)), -sin(rads(angle)), sin(rads(angle)), cos(rads(angle)));
@@ -273,10 +273,10 @@ for (i = 0; i < 4; i++) {
 vectors[i] = vectors2[i];
 }
 
-ESAT::WindowFrame();
+MOMOS::WindowFrame();
 }
 
-ESAT::WindowDestroy();
+MOMOS::WindowDestroy();
 return 0;
 }
 int arrow_main() {
@@ -290,14 +290,14 @@ Point2 p1, p2, p3;
 //Iniciamos el centro de origen del vector
 initPoint2(&center, win_width / 2, win_height / 2);
 
-ESAT::WindowInit(win_width, win_height);
+MOMOS::WindowInit(win_width, win_height);
 
-while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (MOMOS::WindowIsOpened() && !MOMOS::IsSpecialKeyDown(MOMOS::kSpecialKey_Escape)){
 
-ESAT::DrawClear(150, 150, 150);
+MOMOS::DrawClear(150, 150, 150);
 
 //Dibujamos un vector desde el centro de la pantalla hasta la posición del cursor
-initPoint2(&mouse, ESAT::MousePositionX(), ESAT::MousePositionY());
+initPoint2(&mouse, MOMOS::MousePositionX(), MOMOS::MousePositionY());
 initVec2FromPoints(&vector, center, mouse);
 DrawVec2(vector, center);
 
@@ -326,10 +326,10 @@ DrawVec2(v2, p2);
 initVec2FromPoints(&v3, p3, mouse);
 DrawVec2(v3, p3);
 
-ESAT::WindowFrame();
+MOMOS::WindowFrame();
 }
 
-ESAT::WindowDestroy();
+MOMOS::WindowDestroy();
 return 0;
 }
 int monigote_main() {
@@ -367,11 +367,11 @@ initVec2(&vectors[6], 0.0f, -40.0f);
 initVec2(&vectors[7], -40.0f, 0.0f);
 initVec2(&vectors[8], 0.0f, 40.0f);
 
-ESAT::WindowInit(win_width, win_height);
+MOMOS::WindowInit(win_width, win_height);
 
-while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (MOMOS::WindowIsOpened() && !MOMOS::IsSpecialKeyDown(MOMOS::kSpecialKey_Escape)){
 
-ESAT::DrawClear(150, 150, 150);
+MOMOS::DrawClear(150, 150, 150);
 
 //Monigote inicial
 for (i = 0; i < 9; i++) {
@@ -394,10 +394,10 @@ multMat2Vec2(transform, vectors[i], &v);
 DrawVec2(v, p);
 }
 
-ESAT::WindowFrame();
+MOMOS::WindowFrame();
 }
 
-ESAT::WindowDestroy();
+MOMOS::WindowDestroy();
 return 0;
 }
 */
@@ -431,11 +431,11 @@ initVec2(&vectors[2], length, -length);
 initVec2(&vectors[3], -length, -length);
 
 
-ESAT::WindowInit(win_width, win_height);
+MOMOS::WindowInit(win_width, win_height);
 
-while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (MOMOS::WindowIsOpened() && !MOMOS::IsSpecialKeyDown(MOMOS::kSpecialKey_Escape)){
 
-ESAT::DrawClear(150, 150, 150);
+MOMOS::DrawClear(150, 150, 150);
 
 //recalculamos el vector que une ambos centros, aplicándole una rotación
 multMat2Vec2(translation, v1, &v1);
@@ -450,10 +450,10 @@ multMat2Vec2(rotation, vectors[i], &vectors[i]);
 //Pintamos cosas
 printSquare(sq_center, vectors, color);
 DrawVec2(v1, center);
-ESAT::WindowFrame();
+MOMOS::WindowFrame();
 }
 
-ESAT::WindowDestroy();
+MOMOS::WindowDestroy();
 return 0;
 }
 
@@ -477,11 +477,11 @@ float angle2 = 5;
 initMat2(&m2, cos(rads(angle2)), -sin(rads(angle2)), sin(rads(angle2)), cos(rads(angle2)));
 initPoint2(&origin2, 200, 300);
 
-ESAT::WindowInit(win_width, win_height);
+MOMOS::WindowInit(win_width, win_height);
 
-while (ESAT::WindowIsOpened() && !ESAT::IsSpecialKeyDown(ESAT::kSpecialKey_Escape)){
+while (MOMOS::WindowIsOpened() && !MOMOS::IsSpecialKeyDown(MOMOS::kSpecialKey_Escape)){
 
-ESAT::DrawClear(150, 150, 150);
+MOMOS::DrawClear(150, 150, 150);
 
 for (int i = 0; i < 4; i++) {
 Point2 tmp;
@@ -489,21 +489,21 @@ afineTransformFromPoint2(c[i], m, origin, &tmp);
 afineTransformFromPoint2(tmp, m2, origin2, &cp[i]);
 }
 
-ESAT::DrawSetStrokeColor(255, 255, 255, 255);
+MOMOS::DrawSetStrokeColor(255, 255, 255, 255);
 for (int i = 0; i < 4; i++) {
 drawLine(cp[i], cp[(i - 1) % 4]);
 }
 
-ESAT::WindowFrame();
+MOMOS::WindowFrame();
 }
 
-ESAT::WindowDestroy();
+MOMOS::WindowDestroy();
 return 0;
 }
 
 /* El corazón de la bestia */
 /*
-int ESAT::main(int argc, char **argv) {
+int MOMOS::main(int argc, char **argv) {
 
 return planeta2_main();
 }

@@ -5,10 +5,10 @@ Marcos Vázquez Rey
 ESAT 2015
 */
 
-#include <ESAT/window.h>
-#include <ESAT/draw.h>
-#include <ESAT/sprite.h>
-#include <ESAT/input.h>
+#include <MOMOS/window.h>
+#include <MOMOS/draw.h>
+#include <MOMOS/sprite.h>
+#include <MOMOS/input.h>
 
 #include <Windows.h>
 
